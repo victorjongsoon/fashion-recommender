@@ -18,6 +18,7 @@ type OutfitItem = {
   name: string;
   type: 'top' | 'bottom' | 'outerwear' | 'dress';
   image: string;
+  itemId?: string; // Fashion200k item ID for fetching from image-service
 };
 
 type Outfit = {
@@ -28,40 +29,43 @@ type Outfit = {
   tags: string[];
 };
 
-// Mock outfit data
+// Generate outfit recommendations with hardcoded Fashion200k item IDs
+// These will be fetched from the image-service via /images/{item_id} endpoint
 const generateOutfits = (contextData: ContextData, preferenceData: PreferenceData): Outfit[] => {
   const isWinter = ['January', 'February', 'March', 'November', 'December'].includes(contextData.month);
-  const isSummer = ['June', 'July', 'August'].includes(contextData.month);
-  const styles = preferenceData.styles;
   
+  // Helper function to get image URL from image-service
+  // In docker: http://image-service:8000/images/{item_id}
+  // Locally: http://localhost:8001/images/{item_id}
+  const getImageUrl = (itemId: string) => {
+    // Try image-service on docker network first, fallback to localhost
+    return `http://localhost:8001/images/${itemId}`;
+  };
+  
+  // Hardcoded outfits with Fashion200k item IDs
+  // Format: category_itemId (e.g., "51727804_0" for item 51727804_0.jpg)
   const outfits: Outfit[] = [
     {
       id: '1',
-      name: 'Layered Minimalist',
+      name: 'Casual Comfort',
       items: [
         {
           id: 't1',
-          name: 'Merino Wool Sweater',
+          name: 'Classic T-Shirt',
           type: 'top',
-          image: 'https://images.unsplash.com/photo-1633117876849-764eb32d54e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXN1YWwlMjBzd2VhdGVyJTIwY2xvdGhpbmclMjBpdGVtJTIwd2hpdGUlMjBiYWNrZ3JvdW5kfGVufDF8fHx8MTc3MDI2NTMxMnww&ixlib=rb-4.1.0&q=80&w=400'
+          image: getImageUrl('61459916_6'),
+          itemId: '61459916_6'
         },
         {
           id: 'b1',
-          name: 'Dark Wash Denim',
+          name: 'Blue Jeans',
           type: 'bottom',
-          image: 'https://images.unsplash.com/photo-1718252540511-e958742e4165?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZW5pbSUyMGplYW5zJTIwcGFudHMlMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MXx8fHwxNzcwMjY1MzEzfDA&ixlib=rb-4.1.0&q=80&w=400'
-        },
-        ...(isWinter ? [{
-          id: 'o1',
-          name: 'Wool Overcoat',
-          type: 'outerwear' as const,
-          image: 'https://images.unsplash.com/photo-1684841565198-41e4887476f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aW50ZXIlMjBjb2F0JTIwamFja2V0JTIwY2xvdGhpbmclMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MXx8fHwxNzcwMjY1MzEzfDA&ixlib=rb-4.1.0&q=80&w=400'
-        }] : [])
+          image: getImageUrl('16066811_12'),
+          itemId: '16066811_12'
+        }
       ],
-      explanation: isWinter 
-        ? `Perfect for ${contextData.month} in ${contextData.destination}. The wool sweater provides warmth while the overcoat protects against cold winds. Minimal and functional.`
-        : `Clean and versatile for ${contextData.occasion.toLowerCase()} occasions. The neutral tones work well for ${contextData.destination}, offering comfort and style.`,
-      tags: ['Minimal', 'Comfortable', 'Versatile']
+      explanation: `A comfortable everyday look perfect for ${contextData.destination}. The classic pairing works great for casual occasions and is practical for ${contextData.month} weather.`,
+      tags: ['Casual', 'Comfortable', 'Everyday']
     },
     {
       id: '2',
@@ -69,33 +73,36 @@ const generateOutfits = (contextData: ContextData, preferenceData: PreferenceDat
       items: [
         {
           id: 't2',
-          name: 'Structured Blazer',
+          name: 'Button-Up Shirt',
           type: 'top',
-          image: 'https://images.unsplash.com/photo-1547587091-d639c1c338b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsJTIwZmFzaGlvbiUyMG91dGZpdCUyMGNsb3RoaW5nJTIwd2hpdGUlMjBiYWNrZ3JvdW5kfGVufDF8fHx8MTc3MDI2NTMxMXww&ixlib=rb-4.1.0&q=80&w=400'
+          image: getImageUrl('91025856_4'),
+          itemId: '91025856_4'
         },
         {
           id: 'b2',
-          name: 'Tailored Trousers',
+          name: 'Chinos',
           type: 'bottom',
-          image: 'https://images.unsplash.com/photo-1718252540511-e958742e4165?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZW5pbSUyMGplYW5zJTIwcGFudHMlMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MXx8fHwxNzcwMjY1MzEzfDA&ixlib=rb-4.1.0&q=80&w=400'
+          image: getImageUrl('90259196_3'),
+          itemId: '90259196_3'
         }
       ],
-      explanation: `Ideal for ${contextData.occasion.toLowerCase()} settings. This combination strikes the perfect balance between professional and relaxed, suitable for the climate in ${contextData.destination}.`,
-      tags: ['Professional', 'Polished', 'Flexible']
+      explanation: `Ideal for ${contextData.occasion.toLowerCase()} settings in ${contextData.destination}. This combination strikes the perfect balance between professional and relaxed.`,
+      tags: ['Professional', 'Polished', 'Versatile']
     },
     {
       id: '3',
-      name: 'Elegant Evening',
+      name: 'Evening Dress',
       items: [
         {
           id: 'd1',
-          name: 'Silk Midi Dress',
+          name: 'Elegant Dress',
           type: 'dress',
-          image: 'https://images.unsplash.com/photo-1741653216863-c3e2c4c84203?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGVnYW50JTIwZHJlc3MlMjBjbG90aGluZyUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwxfHx8fDE3NzAyNjUzMTJ8MA&ixlib=rb-4.1.0&q=80&w=400'
+          image: getImageUrl('54686996_0'),
+          itemId: '54686996_0'
         }
       ],
-      explanation: `A sophisticated choice for special occasions. The elegant silhouette is perfect for evening events, complementing the ${contextData.month} atmosphere.`,
-      tags: ['Elegant', 'Sophisticated', 'Timeless']
+      explanation: `A sophisticated choice for special occasions. Perfect for evening events and celebrations in ${contextData.destination}.`,
+      tags: ['Elegant', 'Sophisticated', 'Evening']
     }
   ];
 
@@ -123,10 +130,15 @@ export function RecommendationScreen({
   const [userPhotoPreview, setUserPhotoPreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const outfits = generateOutfits(contextData, preferenceData);
 
   const toggleExpand = (outfitId: string) => {
     setExpandedOutfit(expandedOutfit === outfitId ? null : outfitId);
+  };
+
+  const handleImageError = (itemId: string) => {
+    setImageErrors(prev => new Set([...prev, itemId]));
   };
 
   const openTryOn = (outfit: Outfit) => {
@@ -261,15 +273,23 @@ export function RecommendationScreen({
                   {outfit.items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
                       <div className="w-20 h-20 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
+                        {imageErrors.has(item.id) ? (
+                          <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-xs text-neutral-500">
+                            Image not found
+                          </div>
+                        ) : (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={() => handleImageError(item.id)}
+                          />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{item.name}</p>
                         <p className="text-xs text-neutral-500 capitalize">{item.type}</p>
+                        {item.itemId && <p className="text-xs text-neutral-400">ID: {item.itemId}</p>}
                       </div>
                     </div>
                   ))}
@@ -406,11 +426,23 @@ function TryOnModal({
               {outfit.items.map(it => (
                 <div key={it.id} className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded-md overflow-hidden bg-neutral-100">
-                    <img src={it.image} alt={it.name} className="w-full h-full object-cover" />
+                    {imageErrors.has(it.id) ? (
+                      <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-xs text-neutral-500">
+                        Not found
+                      </div>
+                    ) : (
+                      <img 
+                        src={it.image} 
+                        alt={it.name} 
+                        className="w-full h-full object-cover"
+                        onError={() => handleImageError(it.id)}
+                      />
+                    )}
                   </div>
                   <div>
                     <div className="text-sm font-medium">{it.name}</div>
                     <div className="text-xs text-neutral-500 capitalize">{it.type}</div>
+                    {it.itemId && <div className="text-xs text-neutral-400">ID: {it.itemId}</div>}
                   </div>
                 </div>
               ))}
