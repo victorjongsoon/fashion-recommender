@@ -28,3 +28,10 @@ services:
       - ./data/raw/fashion200k/images:/data/images:ro
     ports:
       - "8001:8000"
+
+  vton-service:
+    build: ./services/vton-services
+    ports:
+      - "8002:8000"
+    environment:
+      HF_TOKEN: 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
