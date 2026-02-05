@@ -3,6 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# build-time env
+ARG VITE_IMAGE_BASE_URL
+ENV VITE_IMAGE_BASE_URL=$VITE_IMAGE_BASE_URL
+
 # Copy package files
 COPY package.json package-lock.json ./
 
