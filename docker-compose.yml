@@ -10,3 +10,13 @@ services:
       - ./data/processed/inventory_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     ports:
       - "5432:5432"
+
+  image-service:
+    build:
+      context: ./services/image-service
+    environment:
+      IMAGES_DIR: /data/images
+    volumes:
+      - ./data/raw/fashion200k/images:/data/images:ro
+    ports:
+      - "8001:8000"
