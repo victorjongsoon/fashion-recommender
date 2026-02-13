@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
-import { ArrowRight, MapPin, Calendar, Briefcase } from 'lucide-react';
+import { ArrowRight, MapPin, Calendar, Briefcase, ChevronDown } from 'lucide-react';
 import type { ContextData } from '../App';
 
 interface ContextInputScreenProps {
@@ -18,8 +18,193 @@ const months = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+// Popular destinations (cities and countries)
+const popularDestinations = [
+  // Asian cities
+  'Tokyo, Japan',
+  'Singapore',
+  'Hong Kong',
+  'Seoul, South Korea',
+  'Bangkok, Thailand',
+  'Kuala Lumpur, Malaysia',
+  'Shanghai, China',
+  'Beijing, China',
+  'Dubai, UAE',
+  'Abu Dhabi, UAE',
+  'Taipei, Taiwan',
+  'Manila, Philippines',
+  'Jakarta, Indonesia',
+  'Bali, Indonesia',
+  'Hanoi, Vietnam',
+  'Ho Chi Minh City, Vietnam',
+  'Phuket, Thailand',
+  'Chiang Mai, Thailand',
+  'Mumbai, India',
+  'Delhi, India',
+  'Bangalore, India',
+  'Osaka, Japan',
+  'Kyoto, Japan',
+  'Busan, South Korea',
+  'Macau',
+  'Doha, Qatar',
+  'Riyadh, Saudi Arabia',
+  'Tel Aviv, Israel',
+  'Istanbul, Turkey',
+  'Colombo, Sri Lanka',
+  'Kathmandu, Nepal',
+  'Phnom Penh, Cambodia',
+  'Yangon, Myanmar',
+  
+  // European cities
+  'Paris, France',
+  'London, United Kingdom',
+  'Barcelona, Spain',
+  'Madrid, Spain',
+  'Rome, Italy',
+  'Milan, Italy',
+  'Venice, Italy',
+  'Amsterdam, Netherlands',
+  'Berlin, Germany',
+  'Munich, Germany',
+  'Vienna, Austria',
+  'Prague, Czech Republic',
+  'Budapest, Hungary',
+  'Lisbon, Portugal',
+  'Athens, Greece',
+  'Zurich, Switzerland',
+  'Geneva, Switzerland',
+  'Stockholm, Sweden',
+  'Copenhagen, Denmark',
+  'Oslo, Norway',
+  'Brussels, Belgium',
+  'Dublin, Ireland',
+  'Edinburgh, United Kingdom',
+  'Warsaw, Poland',
+  
+  // American cities
+  'New York, USA',
+  'Los Angeles, USA',
+  'Las Vegas, USA',
+  'Miami, USA',
+  'San Francisco, USA',
+  'Chicago, USA',
+  'Seattle, USA',
+  'Boston, USA',
+  'Washington DC, USA',
+  'Toronto, Canada',
+  'Vancouver, Canada',
+  'Montreal, Canada',
+  'Mexico City, Mexico',
+  'Cancun, Mexico',
+  'Buenos Aires, Argentina',
+  'Rio de Janeiro, Brazil',
+  'São Paulo, Brazil',
+  'Lima, Peru',
+  'Bogotá, Colombia',
+  'Santiago, Chile',
+  
+  // Oceania cities
+  'Sydney, Australia',
+  'Melbourne, Australia',
+  'Brisbane, Australia',
+  'Perth, Australia',
+  'Auckland, New Zealand',
+  'Wellington, New Zealand',
+  
+  // African & Middle Eastern cities
+  'Cairo, Egypt',
+  'Cape Town, South Africa',
+  'Johannesburg, South Africa',
+  'Marrakech, Morocco',
+  'Nairobi, Kenya',
+  
+  // Asian countries
+  'Japan',
+  'Singapore',
+  'South Korea',
+  'Thailand',
+  'Malaysia',
+  'China',
+  'Taiwan',
+  'Philippines',
+  'Indonesia',
+  'Vietnam',
+  'India',
+  'UAE',
+  'Qatar',
+  'Saudi Arabia',
+  'Israel',
+  'Turkey',
+  'Sri Lanka',
+  'Nepal',
+  'Cambodia',
+  'Myanmar',
+  'Maldives',
+  'Brunei',
+  'Laos',
+  'Mongolia',
+  'France',
+  'United Kingdom',
+  'Spain',
+  'Italy',
+  'Germany',
+  'Netherlands',
+  'Austria',
+  'Switzerland',
+  'USA',
+  'Canada',
+  'Mexico',
+  'Australia',
+  'New Zealand',
+  'Brazil',
+  'Argentina',
+  'Greece',
+  'Portugal',
+  'Belgium',
+  'Sweden',
+  'Norway',
+  'Denmark',
+  'Ireland',
+  'Czech Republic',
+  'Poland',
+  'Hungary',
+  'Egypt',
+  'South Africa',
+  'Morocco',
+].sort();
+
 export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreenProps) {
   const [formData, setFormData] = useState<ContextData>(initialData);
+  const [showDestinations, setShowDestinations] = useState(false);
+  const [filteredDestinations, setFilteredDestinations] = useState(popularDestinations);
+  const destinationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
+        setShowDestinations(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleDestinationChange = (value: string) => {
+    setFormData({ ...formData, destination: value });
+    
+    // Filter destinations
+    const filtered = popularDestinations.filter(dest =>
+      dest.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredDestinations(filtered);
+    setShowDestinations(true);
+  };
+
+  const selectDestination = (destination: string) => {
+    setFormData({ ...formData, destination });
+    setShowDestinations(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,13 +260,38 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
               <MapPin className="w-4 h-4" />
               Destination
             </Label>
-            <Input
-              id="destination"
-              placeholder="e.g., Tokyo, Japan"
-              value={formData.destination}
-              onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-              className="h-12"
-            />
+            <div className="relative" ref={destinationRef}>
+              <div className="relative">
+                <Input
+                  id="destination"
+                  placeholder="Search or type a destination..."
+                  value={formData.destination}
+                  onChange={(e) => handleDestinationChange(e.target.value)}
+                  onFocus={() => setShowDestinations(true)}
+                  className="h-12 pr-10"
+                  autoComplete="off"
+                />
+                <ChevronDown 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none"
+                />
+              </div>
+              
+              {showDestinations && filteredDestinations.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredDestinations.map((destination) => (
+                    <button
+                      key={destination}
+                      type="button"
+                      onClick={() => selectDestination(destination)}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 transition-colors flex items-center gap-2 border-b border-neutral-100 last:border-b-0"
+                    >
+                      <MapPin className="w-3 h-3 text-neutral-400 flex-shrink-0" />
+                      <span>{destination}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
