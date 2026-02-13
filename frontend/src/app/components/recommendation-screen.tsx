@@ -16,7 +16,7 @@ interface RecommendationScreenProps {
 type OutfitItem = {
   id: string;
   name: string;
-  type: 'top' | 'bottom' | 'outerwear' | 'dress';
+  type: 'top' | 'bottom' | 'outerwear';
   image: string;
   itemId?: string; // H&M article_id for fetching from image-service
 };
@@ -93,10 +93,6 @@ const generateOutfits = (contextData: ContextData, preferenceData: PreferenceDat
 
   // Filter based on preferences
   return outfits.filter(outfit => {
-    // If user wants to avoid dresses, filter them out
-    if (preferenceData.constraints.includes('avoid-dresses')) {
-      return !outfit.items.some(item => item.type === 'dress');
-    }
     return true;
   }).slice(0, 3);
 };
@@ -166,7 +162,7 @@ export function RecommendationScreen({
 
       // Get relevant items based on mode
       const topItem = selectedOutfit.items.find(item => item.type === 'top');
-      const bottomItem = selectedOutfit.items.find(item => item.type === 'bottom' || item.type === 'dress');
+      const bottomItem = selectedOutfit.items.find(item => item.type === 'bottom');
 
       // Step 1: Try on top if needed
       if ((tryOnMode === 'top' || tryOnMode === 'both') && topItem) {
@@ -191,20 +187,6 @@ export function RecommendationScreen({
           setResultUrl(bottomResult);
         } else {
           throw new Error('Failed to dress bottom');
-        }
-      }
-
-      // If only dress, try it on
-      if (tryOnMode === 'both' || tryOnMode === 'top' || tryOnMode === 'bottom') {
-        const dressItem = selectedOutfit.items.find(item => item.type === 'dress');
-        if (dressItem && !topItem && !bottomItem) {
-          setGenerationStep('Dressing...');
-          const dressResult = await callVtonService(currentImage, dressItem);
-          if (dressResult) {
-            setResultUrl(dressResult);
-          } else {
-            throw new Error('Failed to dress');
-          }
         }
       }
 
@@ -267,11 +249,24 @@ export function RecommendationScreen({
             {contextData.occasion} • {contextData.destination} • {contextData.month}
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
-            {preferenceData.styles.map((style) => (
-              <Badge key={style} variant="secondary" className="capitalize">
-                {style}
-              </Badge>
-            ))}
+            {preferenceData.preferred_colors && preferenceData.preferred_colors.length > 0 && (
+              <>
+                {preferenceData.preferred_colors.map((color) => (
+                  <Badge key={color} variant="secondary" className="capitalize bg-green-100 text-green-800 border-green-300">
+                    {color}
+                  </Badge>
+                ))}
+              </>
+            )}
+            {preferenceData.avoid_colors && preferenceData.avoid_colors.length > 0 && (
+              <>
+                {preferenceData.avoid_colors.map((color) => (
+                  <Badge key={color} variant="secondary" className="capitalize bg-red-100 text-red-800 border-red-300">
+                    No {color}
+                  </Badge>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
@@ -442,7 +437,6 @@ function TryOnModal({
 
   const hasTop = outfit.items.some(item => item.type === 'top');
   const hasBottom = outfit.items.some(item => item.type === 'bottom');
-  const hasDress = outfit.items.some(item => item.type === 'dress');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -548,21 +542,6 @@ function TryOnModal({
                     <div className="text-xs text-neutral-500 mt-1">Dress top and bottom</div>
                   </button>
                 )}
-
-                {hasDress && !hasTop && !hasBottom && (
-                  <button
-                    onClick={() => onTryOnModeChange('both')}
-                    disabled={isGenerating}
-                    className={`p-4 rounded-lg border-2 transition-all col-span-full sm:col-span-1 ${
-                      tryOnMode === 'both'
-                        ? 'border-black bg-black/5'
-                        : 'border-neutral-200 hover:border-neutral-300'
-                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <div className="font-medium">Try Dress</div>
-                    <div className="text-xs text-neutral-500 mt-1">Dress the outfit</div>
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -575,8 +554,8 @@ function TryOnModal({
                 {outfit.items.map(item => {
                   const shouldInclude =
                     (tryOnMode === 'top' && item.type === 'top') ||
-                    (tryOnMode === 'bottom' && (item.type === 'bottom' || item.type === 'dress')) ||
-                    (tryOnMode === 'both' && (item.type === 'top' || item.type === 'bottom' || item.type === 'dress'));
+                    (tryOnMode === 'bottom' && item.type === 'bottom') ||
+                    (tryOnMode === 'both' && (item.type === 'top' || item.type === 'bottom'));
 
                   if (!shouldInclude) return null;
 

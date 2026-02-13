@@ -12,7 +12,7 @@ interface ContextInputScreenProps {
   onSubmit: (data: ContextData) => void;
 }
 
-const occasions = ['Casual', 'Work', 'Travel', 'Event', 'Date', 'Sports'];
+const occasions = ['Casual', 'Formal', 'Sport'];
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'

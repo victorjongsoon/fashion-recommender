@@ -12,9 +12,9 @@ export type ContextData = {
 };
 
 export type PreferenceData = {
-  styles: string[];
-  constraints: string[];
-  comfort: string[];
+  segment?: string; // 'menswear' | 'ladieswear' | 'sport'
+  preferred_colors?: string[];
+  avoid_colors?: string[];
 };
 
 export default function App() {
@@ -26,9 +26,9 @@ export default function App() {
     description: ''
   });
   const [preferenceData, setPreferenceData] = useState<PreferenceData>({
-    styles: [],
-    constraints: [],
-    comfort: []
+    segment: undefined,
+    preferred_colors: [],
+    avoid_colors: []
   });
 
   const handleStart = () => {
@@ -63,9 +63,9 @@ export default function App() {
       description: ''
     });
     setPreferenceData({
-      styles: [],
-      constraints: [],
-      comfort: []
+      segment: undefined,
+      preferred_colors: [],
+      avoid_colors: []
     });
   };
 
