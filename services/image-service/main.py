@@ -3,35 +3,46 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-app = FastAPI(title="Image Service", version="0.1.0")
+app = FastAPI(title="HNM Image Service", version="1.0.0")
 
-# In docker-compose we will mount dataset to /data
-DATASET_IMAGES_DIR = Path(os.getenv("IMAGES_DIR", "/data/images")).resolve()
+# In docker-compose we mount:
+# ./data/raw/hnm/images -> /data/images
+IMAGES_DIR = Path(os.getenv("IMAGES_DIR", "/data/images")).resolve()
+
 
 @app.get("/health")
 def health():
     return {
         "status": "ok",
-        "preventive_check": {
-            "images_dir_exists": DATASET_IMAGES_DIR.exists(),
-            "images_dir": str(DATASET_IMAGES_DIR),
-        },
+        "images_dir": str(IMAGES_DIR),
+        "images_dir_exists": IMAGES_DIR.exists(),
     }
 
-@app.get("/images/{item_id}")
-def get_image(item_id: str):
-    # Fashion200k files look like: 51727804_0.jpg
-    img_path = (DATASET_IMAGES_DIR / f"{item_id}.jpg").resolve()
 
-    # prevent path traversal
-    if DATASET_IMAGES_DIR not in img_path.parents:
-        raise HTTPException(status_code=400, detail="Invalid item_id")
+@app.get("/images/{article_id}")
+def get_image(article_id: str):
+    """
+    H&M image path rule:
+    folder = first 3 digits of article_id
+    full path = /data/images/{folder}/{article_id}.jpg
+    """
 
-    if not img_path.exists():
+    # Validate numeric ID
+    if not article_id.isdigit():
+        raise HTTPException(status_code=400, detail="Invalid article_id")
+
+    folder = article_id[:3]
+    image_path = (IMAGES_DIR / folder / f"{article_id}.jpg").resolve()
+
+    # Prevent path traversal
+    if IMAGES_DIR not in image_path.parents:
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    if not image_path.exists():
         raise HTTPException(status_code=404, detail="Image not found")
 
     return FileResponse(
-        path=str(img_path),
+        path=str(image_path),
         media_type="image/jpeg",
-        filename=f"{item_id}.jpg",
+        filename=f"{article_id}.jpg",
     )

@@ -25,7 +25,7 @@ services:
     environment:
       IMAGES_DIR: /data/images
     volumes:
-      - ./data/raw/fashion200k/images:/data/images:ro
+      - ./data/raw/hnm/images:/data/images:ro
     ports:
       - "8001:8000"
 

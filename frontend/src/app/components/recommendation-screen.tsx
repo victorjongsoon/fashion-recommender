@@ -18,7 +18,7 @@ type OutfitItem = {
   name: string;
   type: 'top' | 'bottom' | 'outerwear' | 'dress';
   image: string;
-  itemId?: string; // Fashion200k item ID for fetching from image-service
+  itemId?: string; // H&M article_id for fetching from image-service
 };
 
 type Outfit = {
@@ -29,21 +29,21 @@ type Outfit = {
   tags: string[];
 };
 
-// Generate outfit recommendations with hardcoded Fashion200k item IDs
-// These will be fetched from the image-service via /images/{item_id} endpoint
+// Generate outfit recommendations with H&M article_ids
+// These will be fetched from the image-service via /images/{article_id} endpoint
 const generateOutfits = (contextData: ContextData, preferenceData: PreferenceData): Outfit[] => {
   const isWinter = ['January', 'February', 'March', 'November', 'December'].includes(contextData.month);
   
   // Helper function to get image URL from image-service
   // In docker: http://image-service:8000/images/{item_id}
   // Locally: http://localhost:8001/images/{item_id}
-  const getImageUrl = (itemId: string) => {
+  const getImageUrl = (article_id: string) => {
     // Try image-service on docker network first, fallback to localhost
-    return `http://localhost:8001/images/${itemId}`;
+    return `http://localhost:8001/images/${article_id}`;
   };
   
-  // Hardcoded outfits with Fashion200k item IDs
-  // Format: category_itemId (e.g., "51727804_0" for item 51727804_0.jpg)
+  // Hardcoded outfits with H&M article_ids
+  // Format: 10-digit numeric ID (e.g., "0108775015" for article 0108775015.jpg)
   const outfits: Outfit[] = [
     {
       id: '1',
@@ -51,21 +51,21 @@ const generateOutfits = (contextData: ContextData, preferenceData: PreferenceDat
       items: [
         {
           id: 't1',
-          name: 'Classic T-Shirt',
+          name: 'Basic T-Shirt',
           type: 'top',
-          image: getImageUrl('61459916_6'),
-          itemId: '61459916_6'
+          image: getImageUrl('0108775015'),
+          itemId: '0108775015'
         },
         {
           id: 'b1',
-          name: 'Blue Jeans',
+          name: 'Denim Jeans',
           type: 'bottom',
-          image: getImageUrl('16066811_12'),
-          itemId: '16066811_12'
+          image: getImageUrl('0720504001'),
+          itemId: '0720504001'
         }
       ],
-      explanation: `A comfortable everyday look perfect for ${contextData.destination}. The classic pairing works great for casual occasions and is practical for ${contextData.month} weather.`,
-      tags: ['Casual', 'Comfortable', 'Everyday']
+      explanation: `A comfortable everyday look perfect for ${contextData.destination}.`,
+      tags: ['Casual', 'Comfortable']
     },
     {
       id: '2',
@@ -73,36 +73,21 @@ const generateOutfits = (contextData: ContextData, preferenceData: PreferenceDat
       items: [
         {
           id: 't2',
-          name: 'Button-Up Shirt',
+          name: 'Shirt',
           type: 'top',
-          image: getImageUrl('91025856_4'),
-          itemId: '91025856_4'
+          image: getImageUrl('0211143022'),
+          itemId: '0211143022'
         },
         {
           id: 'b2',
-          name: 'Chinos',
+          name: 'Trousers',
           type: 'bottom',
-          image: getImageUrl('90259196_3'),
-          itemId: '90259196_3'
+          image: getImageUrl('0397068001'),
+          itemId: '0397068001'
         }
       ],
-      explanation: `Ideal for ${contextData.occasion.toLowerCase()} settings in ${contextData.destination}. This combination strikes the perfect balance between professional and relaxed.`,
-      tags: ['Professional', 'Polished', 'Versatile']
-    },
-    {
-      id: '3',
-      name: 'Evening Dress',
-      items: [
-        {
-          id: 'd1',
-          name: 'Elegant Dress',
-          type: 'dress',
-          image: getImageUrl('54686996_0'),
-          itemId: '54686996_0'
-        }
-      ],
-      explanation: `A sophisticated choice for special occasions. Perfect for evening events and celebrations in ${contextData.destination}.`,
-      tags: ['Elegant', 'Sophisticated', 'Evening']
+      explanation: `Balanced and polished for ${contextData.occasion}.`,
+      tags: ['Polished']
     }
   ];
 
