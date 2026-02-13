@@ -34,12 +34,12 @@ type Outfit = {
 const generateOutfits = (contextData: ContextData, preferenceData: PreferenceData): Outfit[] => {
   const isWinter = ['January', 'February', 'March', 'November', 'December'].includes(contextData.month);
   
-  // Helper function to get image URL from image-service
-  // In docker: http://image-service:8000/images/{item_id}
-  // Locally: http://localhost:8001/images/{item_id}
+  // Get image service URL from environment
+  // Defaults to localhost for development if .env not set
+  const imageServiceUrl = import.meta.env.VITE_IMAGE_SERVICE_URL || 'http://localhost:8001';
+  
   const getImageUrl = (article_id: string) => {
-    // Try image-service on docker network first, fallback to localhost
-    return `http://localhost:8001/images/${article_id}`;
+    return `${imageServiceUrl}/images/${article_id}`;
   };
   
   // Hardcoded outfits with H&M article_ids
@@ -220,13 +220,15 @@ export function RecommendationScreen({
 
   async function callVtonService(bodyImage: File, garmentItem: OutfitItem): Promise<string | null> {
     try {
+      const vtonServiceUrl = import.meta.env.VITE_VTON_SERVICE_URL || 'http://localhost:8002';
+      
       // Send garment URL to backend so the server can download it (avoids browser CORS)
       const form = new FormData();
       form.append('photo', bodyImage);
       form.append('garment_url', garmentItem.image);
       form.append('garment_des', `${garmentItem.name} ${garmentItem.type}`);
 
-      const resp = await fetch('http://localhost:8002/tryon', {
+      const resp = await fetch(`${vtonServiceUrl}/tryon`, {
         method: 'POST',
         body: form
       });

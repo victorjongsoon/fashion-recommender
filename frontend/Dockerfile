@@ -3,9 +3,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# build-time env
-ARG VITE_IMAGE_BASE_URL
-ENV VITE_IMAGE_BASE_URL=$VITE_IMAGE_BASE_URL
+# Build-time environment variables
+ARG VITE_IMAGE_SERVICE_URL=http://localhost:8001
+ARG VITE_VTON_SERVICE_URL=http://localhost:8002
+
+ENV VITE_IMAGE_SERVICE_URL=$VITE_IMAGE_SERVICE_URL
+ENV VITE_VTON_SERVICE_URL=$VITE_VTON_SERVICE_URL
 
 # Copy package files
 COPY package.json package-lock.json ./
