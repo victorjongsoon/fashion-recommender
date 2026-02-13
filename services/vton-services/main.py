@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import requests
 from urllib.parse import urlparse
+import traceback
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,7 +77,7 @@ async def try_on(
             raise HTTPException(status_code=400, detail="No garment image provided")
 
         result = client.predict(
-            {
+            dict={
                 "background": gr_file(person_path),
                 "layers": [],
                 "composite": None,
@@ -100,4 +101,6 @@ async def try_on(
         }
 
     except Exception as e:
+        print("========== VTON ERROR ==========")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
