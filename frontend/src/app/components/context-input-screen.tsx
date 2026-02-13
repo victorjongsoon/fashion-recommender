@@ -19,7 +19,7 @@ const months = [
 ];
 
 // Popular destinations (cities and countries)
-const popularDestinations = [
+const allDestinations = [
   // Asian cities
   'Tokyo, Japan',
   'Singapore',
@@ -118,9 +118,8 @@ const popularDestinations = [
   'Marrakech, Morocco',
   'Nairobi, Kenya',
   
-  // Asian countries
+  // Countries (only add if not already listed as city)
   'Japan',
-  'Singapore',
   'South Korea',
   'Thailand',
   'Malaysia',
@@ -171,7 +170,10 @@ const popularDestinations = [
   'Egypt',
   'South Africa',
   'Morocco',
-].sort();
+];
+
+// Remove duplicates and sort
+const popularDestinations = Array.from(new Set(allDestinations)).sort();
 
 export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreenProps) {
   const [formData, setFormData] = useState<ContextData>(initialData);
@@ -193,10 +195,12 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
   const handleDestinationChange = (value: string) => {
     setFormData({ ...formData, destination: value });
     
-    // Filter destinations
-    const filtered = popularDestinations.filter(dest =>
-      dest.toLowerCase().includes(value.toLowerCase())
-    );
+    // Filter destinations and ensure no duplicates
+    const filtered = Array.from(new Set(
+      popularDestinations.filter(dest =>
+        dest.toLowerCase().includes(value.toLowerCase())
+      )
+    ));
     setFilteredDestinations(filtered);
     setShowDestinations(true);
   };
