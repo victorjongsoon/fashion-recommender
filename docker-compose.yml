@@ -6,8 +6,9 @@ services:
       POSTGRES_USER: inventory
       POSTGRES_PASSWORD: inventory
     volumes:
-      - ./db/init.sql:/docker-entrypoint-initdb.d/01_init.sql
-      - ./db/load_hnm.sql:/docker-entrypoint-initdb.d/02_load.sql
+      - ./db/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./db/02_load_hnm.sql:/docker-entrypoint-initdb.d/02_load.sql
+      - ./db/03_compute_dead_stock.sql:/docker-entrypoint-initdb.d/03_compute_dead_stock.sql
       - ./data/raw/hnm:/data/hnm:ro
     ports:
       - "5432:5432"
