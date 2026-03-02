@@ -29,7 +29,7 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
     RETURN top.id AS Top_Article,
            bottom.id AS Bottom_Article,
            match.weight AS Lift_Score
-    ORDER BY top.id, match.weight DESC
+    ORDER BY top.id DESC
     """
 
     with driver.session() as session:
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # Example usage
     candidates = get_ga_candidates(
         category="Ladieswear Top",
-        color="Red",
+        color="Pink",
         max_price=1000,
         occasion="Party",
         season="Summer",
