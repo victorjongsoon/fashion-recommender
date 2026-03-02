@@ -78,3 +78,6 @@ Thumbs.db
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# neo4j
+data/neo4j_data/
