@@ -22,9 +22,9 @@ WHERE ghost <> real
 MERGE (ghost)-[:IS_SAME_AS]->(real)
 RETURN count(*) as bridges_created
 5. Run again
-MATCH (top:Item {id: '0108775015'})-[:best_matches_with]->(ghost:Attribute)
+MATCH (top:Item {id: '0108775015'})-[match:best_matches_with]->(ghost:Attribute)
 MATCH (ghost)-[:IS_SAME_AS]->(real:Item)
-MATCH (real)-[:has_price]->(price)
-RETURN top, ghost, real, price
+MATCH (real)-[r]->(attribute)
+RETURN top, match, ghost, real, r, attribute
 
 
