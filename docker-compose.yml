@@ -6,9 +6,8 @@ services:
       POSTGRES_USER: inventory
       POSTGRES_PASSWORD: inventory
     volumes:
-      - ./db/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
-      - ./db/02_load_hnm.sql:/docker-entrypoint-initdb.d/02_load.sql
-      - ./db/03_compute_dead_stock.sql:/docker-entrypoint-initdb.d/03_compute_dead_stock.sql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./db/load_hnm.sql:/docker-entrypoint-initdb.d/02_load.sql
       - ./data/raw/hnm:/data/hnm:ro
     ports:
       - "5432:5432"
@@ -35,3 +34,13 @@ services:
       - "8002:8000"
     environment:
       HF_TOKEN: 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
+
+  kg-service:
+    image: neo4j:latest
+    environment:
+      - NEO4J_AUTH=neo4j/password123
+    ports:
+      - "7474:7474" # Web Browser UI
+      - "7687:7687" # Python connection port
+    volumes:
+      - ./data/neo4j_data:/data
