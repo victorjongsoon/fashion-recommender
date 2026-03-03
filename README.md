@@ -13,6 +13,18 @@ docker-compose up -d
 3. Verify the Database: Open your web browser and navigate to http://localhost:7474.
 - Username: neo4j
 - Password: password123
-4. Run MATCH (n) RETURN n LIMIT 50 to visually confirm the graph data is fully loaded.
+4. Run to visually the data in Multi Hop (Create the Ghost mode)
+// This finds the "Ghost" nodes (Attributes) and links them to the "Real" nodes (Items)
+MATCH (ghost:Attribute)
+MATCH (real:Item {id: ghost.id})
+WHERE ghost <> real
+// Create a bridge so the data flows through
+MERGE (ghost)-[:IS_SAME_AS]->(real)
+RETURN count(*) as bridges_created
+5. Run again
+MATCH (top:Item {id: '0108775015'})-[:best_matches_with]->(ghost:Attribute)
+MATCH (ghost)-[:IS_SAME_AS]->(real:Item)
+MATCH (real)-[:has_price]->(price)
+RETURN top, ghost, real, price
 
 

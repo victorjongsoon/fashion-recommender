@@ -25,10 +25,27 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
     # Assemble the final query
     final_query = "\n".join(query_parts) + """
     WITH top LIMIT $top_limit
-    MATCH (top:Item)-[match:best_matches_with]->(bottom:Attribute)
+
+    // --- Transverse the Bridge ---
+    MATCH (top)-[match:best_matches_with]->(ghost:Attribute)-[:IS_SAME_AS]->(real_bottom:Item)
+
+    // -- Grab the extra info for the GA ---
+    OPTIONAL MATCH (top)-[:has_price]->(top_price)
+    OPTIONAL MATCH (top)-[:has_color]->(top_color)
+    OPTIONAL MATCH (top)-[:has_pattern]->(top_pattern)
+    OPTIONAL MATCH (real_bottom)-[:has_price]->(bottom_price)
+    OPTIONAL MATCH (real_bottom)-[:has_color]->(bottom_color)
+    OPTIONAL MATCH (real_bottom)-[:has_pattern]->(bottom_pattern)
+    
     RETURN top.id AS Top_Article,
-           bottom.id AS Bottom_Article,
-           match.weight AS Lift_Score
+           real_bottom.id AS Bottom_Article,
+           match.weight AS Lift_Score,
+           toFloat(top_price.id) AS Top_Price,
+           top_color.id AS Top_Color,
+           top_pattern.id AS Top_Pattern,
+           toFloat(bottom_price.id) AS Bottom_Price,
+           bottom_color.id AS Bottom_Color,
+           bottom_pattern.id AS Bottom_Pattern
     ORDER BY top.id DESC
     """
 
@@ -45,7 +62,7 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
         data = [record.data() for record in results]
 
     if not data:
-        return pd.DataFrame(columns=["Top_Article", "Bottom_Article", "Lift_Score"])
+        return pd.DataFrame(columns=["Top_Article", "Bottom_Article", "Lift_Score", "Top_Price", "Top_Color", "Top_Pattern", "Bottom_Price", "Bottom_Color", "Bottom_Pattern"])
     
     candidate_df = pd.DataFrame(data)
     candidate_df = candidate_df.groupby("Top_Article").head(5).reset_index(drop=True)
@@ -53,7 +70,7 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
 
 def get_ga_candidates(category, color, max_price, occasion, season, top_limit=100):
     """
-    Takes requirements, quries Neo4j and outputs candidate pool
+    Takes requirements, queries Neo4j and outputs candidate pool
     """
     print(f"Received request: {category}, {color}, Under ${max_price}, {occasion}, {season}")
 
@@ -87,7 +104,7 @@ if __name__ == "__main__":
     # Example usage
     candidates = get_ga_candidates(
         category="Ladieswear Top",
-        color="Pink",
+        color="Red",
         max_price=1000,
         occasion="Party",
         season="Summer",
