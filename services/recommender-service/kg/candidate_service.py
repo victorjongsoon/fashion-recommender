@@ -33,9 +33,11 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
     OPTIONAL MATCH (top)-[:has_price]->(top_price)
     OPTIONAL MATCH (top)-[:has_color]->(top_color)
     OPTIONAL MATCH (top)-[:has_pattern]->(top_pattern)
+    OPTIONAL MATCH (top)-[:has_stock_status]->(top_stock)
     OPTIONAL MATCH (real_bottom)-[:has_price]->(bottom_price)
     OPTIONAL MATCH (real_bottom)-[:has_color]->(bottom_color)
     OPTIONAL MATCH (real_bottom)-[:has_pattern]->(bottom_pattern)
+    OPTIONAL MATCH (real_bottom)-[:has_stock_status]->(bottom_stock)
     
     RETURN top.id AS Top_Article,
            real_bottom.id AS Bottom_Article,
@@ -43,9 +45,11 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
            toFloat(top_price.id) AS Top_Price,
            top_color.id AS Top_Color,
            top_pattern.id AS Top_Pattern,
+           top_stock.id AS Top_Stock_Status,
            toFloat(bottom_price.id) AS Bottom_Price,
            bottom_color.id AS Bottom_Color,
-           bottom_pattern.id AS Bottom_Pattern
+           bottom_pattern.id AS Bottom_Pattern,
+           bottom_stock.id AS Bottom_Stock_Status
     ORDER BY top.id DESC
     """
 
@@ -62,7 +66,7 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
         data = [record.data() for record in results]
 
     if not data:
-        return pd.DataFrame(columns=["Top_Article", "Bottom_Article", "Lift_Score", "Top_Price", "Top_Color", "Top_Pattern", "Bottom_Price", "Bottom_Color", "Bottom_Pattern"])
+        return pd.DataFrame(columns=["Top_Article", "Bottom_Article", "Lift_Score", "Top_Price", "Top_Color", "Top_Pattern", "Top_Stock_Status", "Bottom_Price", "Bottom_Color", "Bottom_Pattern", "Bottom_Stock_Status"])
     
     candidate_df = pd.DataFrame(data)
     candidate_df = candidate_df.groupby("Top_Article").head(5).reset_index(drop=True)
