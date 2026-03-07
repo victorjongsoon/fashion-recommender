@@ -20,14 +20,24 @@ AUTH = ("neo4j", "password123")  # Default username and password for Neo4j
 driver = GraphDatabase.driver(URI, auth=AUTH)
 
 def load_edges(tx, rel_type, edges_subset):
-    query = f"""
-    UNWIND $rows AS row
-    MERGE (h:Item {{id: toString(row.head)}})
-    MERGE (t:Attribute {{id: toString(row.tail)}})
-    MERGE (h)-[r:`{rel_type}`]->(t)
-    SET r.weight = row.weight, 
-        r.tail_color = row.tail_color
-    """
+    if rel_type == 'best_matches_with':
+        query = """
+        UNWIND $rows AS row
+        MERGE (h:Item {id: toString(row.head)})
+        MERGE (t:Item {id: toString(row.tail)})
+        MERGE (h)-[r:`best_matches_with`]->(t)
+        SET r.weight = row.weight,
+            r.tail_color = row.tail_color
+        """
+    else:
+        query = f"""
+        UNWIND $rows AS row
+        MERGE (h:Item {{id: toString(row.head)}})
+        MERGE (t:Attribute {{id: toString(row.tail)}})
+        MERGE (h)-[r:`{rel_type}`]->(t)
+        SET r.weight = row.weight,
+            r.tail_color = row.tail_color
+        """
     records = edges_subset.replace({np.nan: None}).to_dict('records')
     tx.run(query, rows=records)
 
