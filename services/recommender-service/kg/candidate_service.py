@@ -27,20 +27,20 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
     WITH top LIMIT $top_limit
 
     // --- Transverse the Bridge ---
-    MATCH (top)-[match:best_matches_with]->(ghost:Attribute)-[:IS_SAME_AS]->(real_bottom:Item)
+    MATCH (top)-[match:best_matches_with]->(bottom:Item)
 
     // -- Grab the extra info for the GA ---
     OPTIONAL MATCH (top)-[:has_price]->(top_price)
     OPTIONAL MATCH (top)-[:has_color]->(top_color)
     OPTIONAL MATCH (top)-[:has_pattern]->(top_pattern)
     OPTIONAL MATCH (top)-[:has_stock_status]->(top_stock)
-    OPTIONAL MATCH (real_bottom)-[:has_price]->(bottom_price)
-    OPTIONAL MATCH (real_bottom)-[:has_color]->(bottom_color)
-    OPTIONAL MATCH (real_bottom)-[:has_pattern]->(bottom_pattern)
-    OPTIONAL MATCH (real_bottom)-[:has_stock_status]->(bottom_stock)
-    
+    OPTIONAL MATCH (bottom)-[:has_price]->(bottom_price)
+    OPTIONAL MATCH (bottom)-[:has_color]->(bottom_color)
+    OPTIONAL MATCH (bottom)-[:has_pattern]->(bottom_pattern)
+    OPTIONAL MATCH (bottom)-[:has_stock_status]->(bottom_stock)
+
     RETURN top.id AS Top_Article,
-           real_bottom.id AS Bottom_Article,
+           bottom.id AS Bottom_Article,
            match.weight AS Lift_Score,
            toFloat(top_price.id) AS Top_Price,
            top_color.id AS Top_Color,
