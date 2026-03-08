@@ -19,12 +19,12 @@ MATCH (ghost:Attribute)
 MATCH (real:Item {id: ghost.id})
 WHERE ghost <> real
 // Create a bridge so the data flows through
-MERGE (ghost)-[:IS_SAME_AS]->(real)
-RETURN count(*) as bridges_created
-5. Run again
-MATCH (top:Item {id: '0108775015'})-[match:best_matches_with]->(ghost:Attribute)
-MATCH (ghost)-[:IS_SAME_AS]->(real:Item)
-MATCH (real)-[r]->(attribute)
-RETURN top, match, ghost, real, r, attribute
-
+// 1. Find the top and its matching bottoms
+MATCH (top:Item {id: '0108775015'})-[match:best_matches_with]->(bottom:Item)
+// 2. Expand all attributes for the Top (using the wildcard 'r_top')
+OPTIONAL MATCH (top)-[r_top]->(top_attr:Attribute)
+// 3. Expand all attributes for the Bottoms (using the wildcard 'r_bot')
+OPTIONAL MATCH (bottom)-[r_bot]->(bot_attr:Attribute)
+// 4. Return every piece of the puzzle to generate the visual graph
+RETURN top, match, bottom, r_top, top_attr, r_bot, bot_attr
 

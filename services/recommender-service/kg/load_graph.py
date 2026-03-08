@@ -20,6 +20,7 @@ AUTH = ("neo4j", "password123")  # Default username and password for Neo4j
 driver = GraphDatabase.driver(URI, auth=AUTH)
 
 def load_edges(tx, rel_type, edges_subset):
+<<<<<<< HEAD
     # 1. Dynamically set the tail label
     if rel_type == 'best_matches_with':
         tail_label = "Item"
@@ -32,6 +33,26 @@ def load_edges(tx, rel_type, edges_subset):
     MERGE (h)-[r:`{rel_type}`]->(t)
     SET r.weight = row.weight
     """
+=======
+    if rel_type == 'best_matches_with':
+        query = """
+        UNWIND $rows AS row
+        MERGE (h:Item {id: toString(row.head)})
+        MERGE (t:Item {id: toString(row.tail)})
+        MERGE (h)-[r:`best_matches_with`]->(t)
+        SET r.weight = row.weight,
+            r.tail_color = row.tail_color
+        """
+    else:
+        query = f"""
+        UNWIND $rows AS row
+        MERGE (h:Item {{id: toString(row.head)}})
+        MERGE (t:Attribute {{id: toString(row.tail)}})
+        MERGE (h)-[r:`{rel_type}`]->(t)
+        SET r.weight = row.weight,
+            r.tail_color = row.tail_color
+        """
+>>>>>>> fb1557b3b6e492bc347b937e4d39771f0dfee733
     records = edges_subset.replace({np.nan: None}).to_dict('records')
     tx.run(query, rows=records)
 
