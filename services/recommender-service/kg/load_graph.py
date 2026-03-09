@@ -13,13 +13,6 @@ final_kg = pd.read_csv(DATA_DIR / "final_knowledge_graph.csv")
 # Forces the column to be a string and adds the leading zero back if it's missing!
 final_kg['head'] = final_kg['head'].astype(str).str.zfill(10)
 
-# Take only 1/4 of the data for testing
-SAMPLE_FRACTION = 0.25
-unique_items = final_kg['head'].unique()
-sample_items = unique_items[:int(len(unique_items) * SAMPLE_FRACTION)]
-final_kg = final_kg[final_kg['head'].isin(sample_items)]
-print(f"Sampled {len(sample_items)} items, {len(final_kg)} edges (1/4 of total)")
-
 # Connect to the local Docker database
 print("Connecting to Neo4j Docker database...")
 URI = "bolt://localhost:7687"
@@ -27,23 +20,18 @@ AUTH = ("neo4j", "password123")  # Default username and password for Neo4j
 driver = GraphDatabase.driver(URI, auth=AUTH)
 
 def load_edges(tx, rel_type, edges_subset):
+    # Dynamically set the tail label
     if rel_type == 'best_matches_with':
-        query = """
-        UNWIND $rows AS row
-        MERGE (h:Item {id: toString(row.head)})
-        MERGE (t:Item {id: toString(row.tail)})
-        MERGE (h)-[r:`best_matches_with`]->(t)
-        SET r.weight = row.weight,
-            r.tail_color = row.tail_color
-        """
+        tail_label = "Item"
     else:
-        query = f"""
+        tail_label = "Attribute"
+
+    query = f"""
         UNWIND $rows AS row
         MERGE (h:Item {{id: toString(row.head)}})
-        MERGE (t:Attribute {{id: toString(row.tail)}})
+        MERGE (t:{tail_label} {{id: toString(row.tail)}})
         MERGE (h)-[r:`{rel_type}`]->(t)
-        SET r.weight = row.weight,
-            r.tail_color = row.tail_color
+        SET r.weight = row.weight
         """
     records = edges_subset.replace({np.nan: None}).to_dict('records')
     tx.run(query, rows=records)
