@@ -3,6 +3,7 @@ from neo4j import GraphDatabase
 import numpy as np
 from pathlib import Path
 import os
+import time
 
 # Load CSV files
 print("Loading CSV files...")
@@ -36,6 +37,8 @@ def load_edges(tx, rel_type, edges_subset):
     records = edges_subset.replace({np.nan: None}).to_dict('records')
     tx.run(query, rows=records)
 
+start_time = time.time()
+
 with driver.session() as session:
     print("Pushing Knowledge Graph data...")
     for relation in final_kg['relation'].unique():
@@ -43,5 +46,6 @@ with driver.session() as session:
         subset = final_kg[final_kg['relation'] == relation]
         session.execute_write(load_edges, relation, subset)
 
-print("Knowledge Graph successfully loaded!")
+elapsed = time.time() - start_time
+print(f"Knowledge Graph successfully loaded! (took {elapsed:.2f}s)")
 driver.close()
