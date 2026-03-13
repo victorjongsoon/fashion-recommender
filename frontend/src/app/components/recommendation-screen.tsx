@@ -36,6 +36,8 @@ type OutfitItem = {
   image: string;
   itemId?: string;
   price?: number;
+  pattern?: string;
+  stockStatus?: string;
 };
 
 type Outfit = {
@@ -60,6 +62,8 @@ function mapApiOutfits(apiOutfits: ApiOutfit[]): Outfit[] {
         image: getImageUrl(o.top_article_id),
         itemId: o.top_article_id,
         price: o.top_price,
+        pattern: o.top_pattern,
+        stockStatus: (o as Record<string, unknown>).top_stock_status as string | undefined,
       },
       {
         id: `b${i + 1}`,
@@ -68,6 +72,8 @@ function mapApiOutfits(apiOutfits: ApiOutfit[]): Outfit[] {
         image: getImageUrl(o.bottom_article_id),
         itemId: o.bottom_article_id,
         price: o.bottom_price,
+        pattern: o.bottom_pattern,
+        stockStatus: (o as Record<string, unknown>).bottom_stock_status as string | undefined,
       },
     ],
   }));
@@ -91,6 +97,7 @@ export function RecommendationScreen({
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [generationStep, setGenerationStep] = useState<string>('');
+  const [detailItem, setDetailItem] = useState<OutfitItem | null>(null);
 
   const fetchRecommendations = useCallback(async () => {
     setLoading(true);
@@ -329,7 +336,11 @@ export function RecommendationScreen({
 
                   <div className="space-y-3 mb-4">
                     {outfit.items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3">
+                      <div
+                        key={item.id}
+                        onClick={() => setDetailItem(item)}
+                        className="flex items-center gap-3 cursor-pointer rounded-lg p-1 -m-1 hover:bg-neutral-50 transition-colors"
+                      >
                         <div className="w-20 h-20 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
                           {imageErrors.has(item.id) ? (
                             <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-xs text-neutral-500">
@@ -352,6 +363,15 @@ export function RecommendationScreen({
                       </div>
                     ))}
                   </div>
+
+                  {(() => {
+                    const total = outfit.items.reduce((sum, item) => sum + (item.price ?? 0), 0);
+                    return (
+                      <div className="text-sm font-medium text-neutral-700 mb-4 pt-2 border-t border-neutral-100">
+                        Total: ${total.toFixed(2)}
+                      </div>
+                    );
+                  })()}
 
                   <div className="mt-4">
                     <Button
@@ -377,6 +397,14 @@ export function RecommendationScreen({
           </Card>
         )}
 
+        {/* Item Detail Modal */}
+        <ItemDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          imageError={detailItem ? imageErrors.has(detailItem.id) : false}
+          onImageError={handleImageError}
+        />
+
         {/* Try-On Modal */}
         <TryOnModal
           open={tryOnOpen}
@@ -393,6 +421,79 @@ export function RecommendationScreen({
           imageErrors={imageErrors}
           handleImageError={handleImageError}
         />
+      </div>
+    </div>
+  );
+}
+
+function ItemDetailModal({
+  item,
+  onClose,
+  imageError,
+  onImageError,
+}: {
+  item: OutfitItem | null;
+  onClose: () => void;
+  imageError: boolean;
+  onImageError: (id: string) => void;
+}) {
+  if (!item) return null;
+
+  const attributes = [
+    { label: 'Article ID', value: item.itemId || 'N/A' },
+    { label: 'Type', value: item.type === 'top' ? 'Top' : 'Bottom' },
+    { label: 'Color', value: item.name.split(' ').slice(0, -1).join(' ') || 'N/A' },
+    { label: 'Pattern', value: item.pattern || 'N/A' },
+    { label: 'Price', value: item.price != null ? `$${item.price.toFixed(2)}` : 'N/A' },
+    { label: 'Stock Status', value: item.stockStatus || 'Unknown' },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 p-6 border-b bg-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-semibold">{item.name}</h3>
+              <p className="text-sm text-neutral-500 mt-1 capitalize">{item.type} garment</p>
+            </div>
+            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="w-full aspect-square rounded-lg overflow-hidden bg-neutral-100 mb-6">
+            {imageError ? (
+              <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-sm text-neutral-500">
+                Image not available
+              </div>
+            ) : (
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-cover"
+                onError={() => onImageError(item.id)}
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {attributes.map((attr) => (
+              <div key={attr.label}>
+                <p className="text-xs text-neutral-500 uppercase tracking-wide">{attr.label}</p>
+                <p className="text-sm font-medium mt-0.5">{attr.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
