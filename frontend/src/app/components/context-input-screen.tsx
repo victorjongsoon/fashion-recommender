@@ -1,223 +1,101 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Card } from './ui/card';
-import { ArrowRight, MapPin, Calendar, Briefcase, ChevronDown } from 'lucide-react';
-import type { ContextData } from '../App';
+import { ArrowRight, MapPin, Calendar, Briefcase, Palette, ChevronDown, ChevronUp, X, Users, Hash } from 'lucide-react';
+import type { FormData } from '../App';
 
 interface ContextInputScreenProps {
-  initialData: ContextData;
-  onSubmit: (data: ContextData) => void;
+  initialData: FormData;
+  onSubmit: (data: FormData) => void;
 }
 
-const occasions = ['Casual', 'Formal', 'Sport'];
+const occasions = ['Casual', 'Formal', 'Sport', 'Party'];
+
+const destinations = [
+  'Tokyo', 'Seoul', 'Bangkok', 'Singapore', 'Bali',
+  'Sydney', 'London', 'Paris', 'Rome', 'Barcelona',
+  'Amsterdam', 'Dubai', 'Istanbul', 'New York', 'Los Angeles',
+  'San Francisco', 'Miami', 'Toronto', 'Reykjavik', 'Cape Town'
+];
+
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-// Popular destinations (cities and countries)
-const allDestinations = [
-  // Asian cities
-  'Tokyo, Japan',
-  'Singapore',
-  'Hong Kong',
-  'Seoul, South Korea',
-  'Bangkok, Thailand',
-  'Kuala Lumpur, Malaysia',
-  'Shanghai, China',
-  'Beijing, China',
-  'Dubai, UAE',
-  'Abu Dhabi, UAE',
-  'Taipei, Taiwan',
-  'Manila, Philippines',
-  'Jakarta, Indonesia',
-  'Bali, Indonesia',
-  'Hanoi, Vietnam',
-  'Ho Chi Minh City, Vietnam',
-  'Phuket, Thailand',
-  'Chiang Mai, Thailand',
-  'Mumbai, India',
-  'Delhi, India',
-  'Bangalore, India',
-  'Osaka, Japan',
-  'Kyoto, Japan',
-  'Busan, South Korea',
-  'Macau',
-  'Doha, Qatar',
-  'Riyadh, Saudi Arabia',
-  'Tel Aviv, Israel',
-  'Istanbul, Turkey',
-  'Colombo, Sri Lanka',
-  'Kathmandu, Nepal',
-  'Phnom Penh, Cambodia',
-  'Yangon, Myanmar',
-  
-  // European cities
-  'Paris, France',
-  'London, United Kingdom',
-  'Barcelona, Spain',
-  'Madrid, Spain',
-  'Rome, Italy',
-  'Milan, Italy',
-  'Venice, Italy',
-  'Amsterdam, Netherlands',
-  'Berlin, Germany',
-  'Munich, Germany',
-  'Vienna, Austria',
-  'Prague, Czech Republic',
-  'Budapest, Hungary',
-  'Lisbon, Portugal',
-  'Athens, Greece',
-  'Zurich, Switzerland',
-  'Geneva, Switzerland',
-  'Stockholm, Sweden',
-  'Copenhagen, Denmark',
-  'Oslo, Norway',
-  'Brussels, Belgium',
-  'Dublin, Ireland',
-  'Edinburgh, United Kingdom',
-  'Warsaw, Poland',
-  
-  // American cities
-  'New York, USA',
-  'Los Angeles, USA',
-  'Las Vegas, USA',
-  'Miami, USA',
-  'San Francisco, USA',
-  'Chicago, USA',
-  'Seattle, USA',
-  'Boston, USA',
-  'Washington DC, USA',
-  'Toronto, Canada',
-  'Vancouver, Canada',
-  'Montreal, Canada',
-  'Mexico City, Mexico',
-  'Cancun, Mexico',
-  'Buenos Aires, Argentina',
-  'Rio de Janeiro, Brazil',
-  'São Paulo, Brazil',
-  'Lima, Peru',
-  'Bogotá, Colombia',
-  'Santiago, Chile',
-  
-  // Oceania cities
-  'Sydney, Australia',
-  'Melbourne, Australia',
-  'Brisbane, Australia',
-  'Perth, Australia',
-  'Auckland, New Zealand',
-  'Wellington, New Zealand',
-  
-  // African & Middle Eastern cities
-  'Cairo, Egypt',
-  'Cape Town, South Africa',
-  'Johannesburg, South Africa',
-  'Marrakech, Morocco',
-  'Nairobi, Kenya',
-  
-  // Countries (only add if not already listed as city)
-  'Japan',
-  'South Korea',
-  'Thailand',
-  'Malaysia',
-  'China',
-  'Taiwan',
-  'Philippines',
-  'Indonesia',
-  'Vietnam',
-  'India',
-  'UAE',
-  'Qatar',
-  'Saudi Arabia',
-  'Israel',
-  'Turkey',
-  'Sri Lanka',
-  'Nepal',
-  'Cambodia',
-  'Myanmar',
-  'Maldives',
-  'Brunei',
-  'Laos',
-  'Mongolia',
-  'France',
-  'United Kingdom',
-  'Spain',
-  'Italy',
-  'Germany',
-  'Netherlands',
-  'Austria',
-  'Switzerland',
-  'USA',
-  'Canada',
-  'Mexico',
-  'Australia',
-  'New Zealand',
-  'Brazil',
-  'Argentina',
-  'Greece',
-  'Portugal',
-  'Belgium',
-  'Sweden',
-  'Norway',
-  'Denmark',
-  'Ireland',
-  'Czech Republic',
-  'Poland',
-  'Hungary',
-  'Egypt',
-  'South Africa',
-  'Morocco',
-];
+const categories = ['Ladieswear', 'Menswear'];
 
-// Remove duplicates and sort
-const popularDestinations = Array.from(new Set(allDestinations)).sort();
+const outfitCounts = [1, 2, 3, 4, 5];
+
+const colorMap: Record<string, string> = {
+  'Black': '#000000',
+  'White': '#FFFFFF',
+  'Grey': '#808080',
+  'Dark Blue': '#003366',
+  'Light Blue': '#87CEEB',
+  'Blue': '#0066CC',
+  'Red': '#DC143C',
+  'Dark Red': '#8B0000',
+  'Pink': '#FFB6C1',
+  'Light Pink': '#FFE4E1',
+  'Green': '#228B22',
+  'Dark Green': '#006400',
+  'Yellow': '#FFD700',
+  'Orange': '#FF8C00',
+  'Dark Orange': '#FF4500',
+  'Purple': '#9370DB',
+  'Beige': '#F5F5DC',
+  'Brown': '#8B4513',
+  'Gold': '#FFD700',
+  'Silver': '#C0C0C0',
+  'Bronze/Copper': '#CD7F32',
+  'Khaki Green': '#6B8E23'
+};
+
+const colorOptions = Object.keys(colorMap);
+const lightColors = ['White', 'Light Blue', 'Light Pink', 'Beige', 'Yellow', 'Silver'];
 
 export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreenProps) {
-  const [formData, setFormData] = useState<ContextData>(initialData);
-  const [showDestinations, setShowDestinations] = useState(false);
-  const [filteredDestinations, setFilteredDestinations] = useState(popularDestinations);
-  const destinationRef = useRef<HTMLDivElement>(null);
+  const [formData, setFormData] = useState<FormData>(initialData);
+  const [showPreferredColors, setShowPreferredColors] = useState(
+    initialData.preferred_colors.length > 0
+  );
+  const [showAvoidColors, setShowAvoidColors] = useState(
+    initialData.avoid_colors.length > 0
+  );
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
-        setShowDestinations(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleDestinationChange = (value: string) => {
-    setFormData({ ...formData, destination: value });
-    
-    // Filter destinations and ensure no duplicates
-    const filtered = Array.from(new Set(
-      popularDestinations.filter(dest =>
-        dest.toLowerCase().includes(value.toLowerCase())
-      )
-    ));
-    setFilteredDestinations(filtered);
-    setShowDestinations(true);
+  const togglePreferredColor = (color: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      preferred_colors: prev.preferred_colors.includes(color)
+        ? prev.preferred_colors.filter((c) => c !== color)
+        : [...prev.preferred_colors, color]
+    }));
   };
 
-  const selectDestination = (destination: string) => {
-    setFormData({ ...formData, destination });
-    setShowDestinations(false);
+  const toggleAvoidColor = (color: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      avoid_colors: prev.avoid_colors.includes(color)
+        ? prev.avoid_colors.filter((c) => c !== color)
+        : [...prev.avoid_colors, color]
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.occasion && formData.destination && formData.month) {
+    if (isValid) {
       onSubmit(formData);
     }
   };
 
-  const isValid = formData.occasion && formData.destination && formData.month;
+  const isValid =
+    formData.occasion &&
+    formData.destination &&
+    formData.month &&
+    formData.category &&
+    formData.num_outfits >= 1 &&
+    formData.num_outfits <= 5;
 
   return (
     <div className="min-h-screen bg-white">
@@ -225,113 +103,275 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-neutral-500 mb-4">
             <div className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-xs">1</div>
-            <span>Context</span>
+            <span>Your Details</span>
             <div className="w-6 h-6 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center text-xs">2</div>
-            <span className="text-neutral-400">Preferences</span>
-            <div className="w-6 h-6 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center text-xs">3</div>
             <span className="text-neutral-400">Results</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-light tracking-tight mb-2">Tell us about your plans</h2>
-          <p className="text-neutral-600">We'll recommend outfits that match your context and weather</p>
+          <h2 className="text-3xl md:text-4xl font-light tracking-tight mb-2">Plan your outfit</h2>
+          <p className="text-neutral-600">Tell us about your trip and style preferences</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="space-y-3">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Briefcase className="w-4 h-4" />
-              Occasion
-            </Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {occasions.map((occasion) => (
-                <button
-                  key={occasion}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, occasion })}
-                  className={`px-4 py-3 rounded-lg border-2 transition-all ${
-                    formData.occasion === occasion
-                      ? 'border-black bg-black text-white'
-                      : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                  }`}
-                >
-                  {occasion}
-                </button>
-              ))}
+        <form onSubmit={handleSubmit} className="space-y-10">
+          {/* ── Trip Details Section ── */}
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium border-b border-neutral-200 pb-2">Trip Details</h3>
+
+            {/* Occasion */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                Occasion
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {occasions.map((occasion) => (
+                  <button
+                    key={occasion}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, occasion })}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      formData.occasion === occasion
+                        ? 'border-black bg-black text-white'
+                        : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                    }`}
+                  >
+                    {occasion}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Destination */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Destination
+              </Label>
+              <select
+                value={formData.destination}
+                onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                className="w-full h-12 px-3 rounded-lg border-2 border-neutral-200 bg-white text-sm focus:outline-none focus:border-black transition-colors"
+              >
+                <option value="">Select a destination</option>
+                {destinations.map((dest) => (
+                  <option key={dest} value={dest}>{dest}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Month */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Month
+              </Label>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                {months.map((month) => (
+                  <button
+                    key={month}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, month })}
+                    className={`px-3 py-2 rounded-lg border-2 transition-all text-sm ${
+                      formData.month === month
+                        ? 'border-black bg-black text-white'
+                        : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                    }`}
+                  >
+                    {month.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Label htmlFor="destination" className="text-sm font-medium flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Destination
-            </Label>
-            <div className="relative" ref={destinationRef}>
-              <div className="relative">
-                <Input
-                  id="destination"
-                  placeholder="Search or type a destination..."
-                  value={formData.destination}
-                  onChange={(e) => handleDestinationChange(e.target.value)}
-                  onFocus={() => setShowDestinations(true)}
-                  className="h-12 pr-10"
-                  autoComplete="off"
-                />
-                <ChevronDown 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none"
-                />
+          {/* ── Style Preferences Section ── */}
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium border-b border-neutral-200 pb-2">Style Preferences</h3>
+
+            {/* Category */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Category
+              </Label>
+              <div className="flex gap-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, category: cat })}
+                    className={`px-6 py-3 rounded-lg border-2 transition-all ${
+                      formData.category === cat
+                        ? 'border-black bg-black text-white'
+                        : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
-              
-              {showDestinations && filteredDestinations.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {filteredDestinations.map((destination) => (
-                    <button
-                      key={destination}
-                      type="button"
-                      onClick={() => selectDestination(destination)}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 transition-colors flex items-center gap-2 border-b border-neutral-100 last:border-b-0"
-                    >
-                      <MapPin className="w-3 h-3 text-neutral-400 flex-shrink-0" />
-                      <span>{destination}</span>
-                    </button>
-                  ))}
+            </div>
+
+            {/* Number of Outfits */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Hash className="w-4 h-4" />
+                Number of Outfits
+              </Label>
+              <div className="flex gap-2">
+                {outfitCounts.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, num_outfits: count })}
+                    className={`w-12 h-12 rounded-lg border-2 transition-all text-sm font-medium ${
+                      formData.num_outfits === count
+                        ? 'border-black bg-black text-white'
+                        : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                    }`}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Preferred Colors - Collapsible swatch grid */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setShowPreferredColors(!showPreferredColors)}
+                className="w-full flex items-center justify-between p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4" />
+                  <span className="text-sm font-medium">Preferred Colors</span>
+                  <span className="text-neutral-400 text-xs font-normal">(optional)</span>
+                  {formData.preferred_colors.length > 0 && (
+                    <span className="text-xs text-neutral-500">({formData.preferred_colors.length} selected)</span>
+                  )}
+                </div>
+                {showPreferredColors ? (
+                  <ChevronUp className="w-4 h-4 text-neutral-500" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-neutral-500" />
+                )}
+              </button>
+
+              {showPreferredColors && (
+                <div className="space-y-3 pt-2">
+                  {formData.preferred_colors.length > 0 && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, preferred_colors: [] })}
+                        className="text-xs text-neutral-500 hover:text-neutral-700 flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" />
+                        Clear all
+                      </button>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3">
+                    {colorOptions.map((color) => {
+                      const isSelected = formData.preferred_colors.includes(color);
+                      const hexColor = colorMap[color];
+                      const isLight = lightColors.includes(color);
+
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => togglePreferredColor(color)}
+                          aria-label={color}
+                          title={color}
+                          className={`w-10 h-10 rounded-full transition-all ${
+                            isSelected
+                              ? 'ring-4 ring-green-500 ring-offset-2 scale-110'
+                              : 'ring-2 ring-neutral-300 hover:ring-neutral-400 hover:scale-105'
+                          }`}
+                          style={{
+                            backgroundColor: hexColor,
+                            border: isLight ? '1px solid #e5e5e5' : 'none'
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Month
-            </Label>
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-              {months.map((month) => (
-                <button
-                  key={month}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, month })}
-                  className={`px-3 py-2 rounded-lg border-2 transition-all text-sm ${
-                    formData.month === month
-                      ? 'border-black bg-black text-white'
-                      : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                  }`}
-                >
-                  {month.slice(0, 3)}
-                </button>
-              ))}
+            {/* Colors to Avoid - Collapsible swatch grid */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setShowAvoidColors(!showAvoidColors)}
+                className="w-full flex items-center justify-between p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4" />
+                  <span className="text-sm font-medium">Colors to Avoid</span>
+                  <span className="text-neutral-400 text-xs font-normal">(optional)</span>
+                  {formData.avoid_colors.length > 0 && (
+                    <span className="text-xs text-neutral-500">({formData.avoid_colors.length} selected)</span>
+                  )}
+                </div>
+                {showAvoidColors ? (
+                  <ChevronUp className="w-4 h-4 text-neutral-500" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-neutral-500" />
+                )}
+              </button>
+
+              {showAvoidColors && (
+                <div className="space-y-3 pt-2">
+                  {formData.avoid_colors.length > 0 && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, avoid_colors: [] })}
+                        className="text-xs text-neutral-500 hover:text-neutral-700 flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" />
+                        Clear all
+                      </button>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3">
+                    {colorOptions.map((color) => {
+                      const isSelected = formData.avoid_colors.includes(color);
+                      const hexColor = colorMap[color];
+                      const isLight = lightColors.includes(color);
+
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => toggleAvoidColor(color)}
+                          aria-label={`Avoid ${color}`}
+                          title={color}
+                          className={`w-10 h-10 rounded-full transition-all relative ${
+                            isSelected
+                              ? 'ring-4 ring-red-500 ring-offset-2 scale-110'
+                              : 'ring-2 ring-neutral-300 hover:ring-neutral-400 hover:scale-105'
+                          }`}
+                          style={{
+                            backgroundColor: hexColor,
+                            border: isLight ? '1px solid #e5e5e5' : 'none'
+                          }}
+                        >
+                          {isSelected && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <X className="w-5 h-5 text-white drop-shadow-lg" strokeWidth={3} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label htmlFor="description" className="text-sm font-medium">
-              Additional details <span className="text-neutral-400 font-normal">(optional)</span>
-            </Label>
-            <Textarea
-              id="description"
-              placeholder="e.g., Business meetings in the morning, exploring the city in the evening..."
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="min-h-24 resize-none"
-            />
           </div>
 
           <Button
@@ -339,7 +379,7 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
             disabled={!isValid}
             className="w-full bg-black hover:bg-neutral-800 text-white h-12 rounded-full"
           >
-            Continue to Preferences
+            Get Recommendations
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </form>

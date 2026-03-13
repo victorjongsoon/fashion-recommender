@@ -1,69 +1,55 @@
 import { useState } from 'react';
 import { LandingScreen } from './components/landing-screen';
 import { ContextInputScreen } from './components/context-input-screen';
-import { PreferenceScreen } from './components/preference-screen';
 import { RecommendationScreen } from './components/recommendation-screen';
 
-export type ContextData = {
+export type FormData = {
   occasion: string;
   destination: string;
   month: string;
-  description: string;
-};
-
-export type PreferenceData = {
-  segment?: string; // 'menswear' | 'ladieswear' | 'sport'
-  preferred_colors?: string[];
-  avoid_colors?: string[];
+  category: string;
+  num_outfits: number;
+  preferred_colors: string[];
+  avoid_colors: string[];
 };
 
 export default function App() {
-  const [step, setStep] = useState<'landing' | 'context' | 'preference' | 'recommendation'>('landing');
-  const [contextData, setContextData] = useState<ContextData>({
+  const [step, setStep] = useState<'landing' | 'form' | 'recommendation'>('landing');
+  const [formData, setFormData] = useState<FormData>({
     occasion: '',
     destination: '',
     month: '',
-    description: ''
-  });
-  const [preferenceData, setPreferenceData] = useState<PreferenceData>({
-    segment: undefined,
+    category: '',
+    num_outfits: 3,
     preferred_colors: [],
     avoid_colors: []
   });
 
   const handleStart = () => {
-    setStep('context');
+    setStep('form');
   };
 
-  const handleContextSubmit = (data: ContextData) => {
-    setContextData(data);
-    setStep('preference');
-  };
-
-  const handlePreferenceSubmit = (data: PreferenceData) => {
-    setPreferenceData(data);
+  const handleFormSubmit = (data: FormData) => {
+    setFormData(data);
     setStep('recommendation');
   };
 
   const handleRegenerate = () => {
-    // Trigger regeneration by re-rendering with updated timestamp
-    setPreferenceData({ ...preferenceData });
+    setFormData({ ...formData });
   };
 
   const handleAdjustPreferences = () => {
-    setStep('preference');
+    setStep('form');
   };
 
   const handleStartOver = () => {
     setStep('landing');
-    setContextData({
+    setFormData({
       occasion: '',
       destination: '',
       month: '',
-      description: ''
-    });
-    setPreferenceData({
-      segment: undefined,
+      category: '',
+      num_outfits: 3,
       preferred_colors: [],
       avoid_colors: []
     });
@@ -72,24 +58,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white">
       {step === 'landing' && <LandingScreen onStart={handleStart} />}
-      {step === 'context' && (
-        <ContextInputScreen 
-          initialData={contextData}
-          onSubmit={handleContextSubmit} 
-        />
-      )}
-      {step === 'preference' && (
-        <PreferenceScreen 
-          initialData={preferenceData}
-          contextData={contextData}
-          onSubmit={handlePreferenceSubmit}
-          onBack={() => setStep('context')}
+      {step === 'form' && (
+        <ContextInputScreen
+          initialData={formData}
+          onSubmit={handleFormSubmit}
         />
       )}
       {step === 'recommendation' && (
-        <RecommendationScreen 
-          contextData={contextData}
-          preferenceData={preferenceData}
+        <RecommendationScreen
+          formData={formData}
           onRegenerate={handleRegenerate}
           onAdjustPreferences={handleAdjustPreferences}
           onStartOver={handleStartOver}
