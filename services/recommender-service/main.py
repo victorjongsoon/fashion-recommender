@@ -44,6 +44,8 @@ class OutfitResponse(BaseModel):
     bottom_pattern: str
     bottom_type: str
     bottom_price: float
+    top_stock_status: str
+    bottom_stock_status: str
 
 
 class RecommendResponse(BaseModel):
@@ -90,6 +92,8 @@ def recommend(request: RecommendRequest):
             bottom_pattern=str(result.get("Bottom_Pattern", "")),
             bottom_type=str(result.get("Bottom_Type", "")),
             bottom_price=float(result.get("Bottom_Price", 0.0) or 0.0),
+            top_stock_status=str(result.get("Top_Stock_Status", "") or ""),
+            bottom_stock_status=str(result.get("Bottom_Stock_Status", "") or ""),
         ))
 
     return RecommendResponse(outfits=outfits)
