@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
-import { ArrowRight, MapPin, Calendar, Briefcase, Palette, ChevronDown, ChevronUp, X, Users, Hash } from 'lucide-react';
+import { ArrowRight, MapPin, Calendar, Briefcase, Palette, ChevronDown, ChevronUp, X, Users, Hash, DollarSign } from 'lucide-react';
 import type { FormData } from '../App';
 
 interface ContextInputScreenProps {
@@ -232,6 +232,30 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
                     {count}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Budget */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Budget per Outfit
+              </Label>
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min={20}
+                  max={500}
+                  step={10}
+                  value={formData.max_price}
+                  onChange={(e) => setFormData({ ...formData, max_price: Number(e.target.value) })}
+                  className="w-full accent-black"
+                />
+                <div className="flex justify-between text-sm text-neutral-500">
+                  <span>$20</span>
+                  <span className="font-medium text-black">${formData.max_price}</span>
+                  <span>$500</span>
+                </div>
               </div>
             </div>
 

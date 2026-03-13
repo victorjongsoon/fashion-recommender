@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { RefreshCw, Settings, Home, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { RefreshCw, Settings, Home, Loader2, AlertCircle } from 'lucide-react';
 import type { FormData } from '../App';
+
+const RECOMMENDER_URL = import.meta.env.VITE_RECOMMENDER_SERVICE_URL || 'http://localhost:8003';
+const IMAGE_SERVICE_URL = import.meta.env.VITE_IMAGE_SERVICE_URL || 'http://localhost:8001';
 
 interface RecommendationScreenProps {
   formData: FormData;
@@ -12,82 +15,63 @@ interface RecommendationScreenProps {
   onStartOver: () => void;
 }
 
+type ApiOutfit = {
+  top_article_id: string;
+  bottom_article_id: string;
+  fitness_score: number;
+  top_color: string;
+  top_pattern: string;
+  top_type: string;
+  top_price: number;
+  bottom_color: string;
+  bottom_pattern: string;
+  bottom_type: string;
+  bottom_price: number;
+};
+
 type OutfitItem = {
   id: string;
   name: string;
   type: 'top' | 'bottom' | 'outerwear';
   image: string;
   itemId?: string;
+  price?: number;
 };
 
 type Outfit = {
   id: string;
   name: string;
   items: OutfitItem[];
-  explanation: string;
-  tags: string[];
+  fitnessScore: number;
 };
 
-const generateOutfits = (formData: FormData): Outfit[] => {
-  const imageServiceUrl = import.meta.env.VITE_IMAGE_SERVICE_URL || 'http://localhost:8001';
-  const getImageUrl = (article_id: string) => `${imageServiceUrl}/images/${article_id}`;
+function mapApiOutfits(apiOutfits: ApiOutfit[]): Outfit[] {
+  const getImageUrl = (articleId: string) => `${IMAGE_SERVICE_URL}/images/${articleId}`;
 
-  // Hardcoded outfits with H&M article_ids
-  const allOutfits: Outfit[] = [
-    {
-      id: '1',
-      name: 'Casual Comfort',
-      items: [
-        { id: 't1', name: 'Basic T-Shirt', type: 'top', image: getImageUrl('0108775015'), itemId: '0108775015' },
-        { id: 'b1', name: 'Denim Jeans', type: 'bottom', image: getImageUrl('0720504001'), itemId: '0720504001' }
-      ],
-      explanation: `A comfortable everyday look perfect for ${formData.destination}.`,
-      tags: ['Casual', 'Comfortable']
-    },
-    {
-      id: '2',
-      name: 'Smart Casual',
-      items: [
-        { id: 't2', name: 'Shirt', type: 'top', image: getImageUrl('0211143022'), itemId: '0211143022' },
-        { id: 'b2', name: 'Trousers', type: 'bottom', image: getImageUrl('0397068001'), itemId: '0397068001' }
-      ],
-      explanation: `Balanced and polished for ${formData.occasion}.`,
-      tags: ['Polished']
-    },
-    {
-      id: '3',
-      name: 'Weekend Vibes',
-      items: [
-        { id: 't3', name: 'Polo Shirt', type: 'top', image: getImageUrl('0108775015'), itemId: '0108775015' },
-        { id: 'b3', name: 'Chinos', type: 'bottom', image: getImageUrl('0397068001'), itemId: '0397068001' }
-      ],
-      explanation: `Relaxed yet put-together for exploring ${formData.destination}.`,
-      tags: ['Relaxed', 'Versatile']
-    },
-    {
-      id: '4',
-      name: 'City Explorer',
-      items: [
-        { id: 't4', name: 'Henley Top', type: 'top', image: getImageUrl('0211143022'), itemId: '0211143022' },
-        { id: 'b4', name: 'Joggers', type: 'bottom', image: getImageUrl('0720504001'), itemId: '0720504001' }
-      ],
-      explanation: `Comfortable for long days of sightseeing.`,
-      tags: ['Active', 'Comfortable']
-    },
-    {
-      id: '5',
-      name: 'Evening Out',
-      items: [
-        { id: 't5', name: 'Dress Shirt', type: 'top', image: getImageUrl('0211143022'), itemId: '0211143022' },
-        { id: 'b5', name: 'Dress Pants', type: 'bottom', image: getImageUrl('0397068001'), itemId: '0397068001' }
-      ],
-      explanation: `Sharp look for evening plans in ${formData.destination}.`,
-      tags: ['Formal', 'Elegant']
-    }
-  ];
-
-  return allOutfits.slice(0, formData.num_outfits);
-};
+  return apiOutfits.map((o, i) => ({
+    id: String(i + 1),
+    name: `Outfit ${i + 1}`,
+    fitnessScore: o.fitness_score,
+    items: [
+      {
+        id: `t${i + 1}`,
+        name: `${o.top_color} ${o.top_type}`,
+        type: 'top' as const,
+        image: getImageUrl(o.top_article_id),
+        itemId: o.top_article_id,
+        price: o.top_price,
+      },
+      {
+        id: `b${i + 1}`,
+        name: `${o.bottom_color} ${o.bottom_type}`,
+        type: 'bottom' as const,
+        image: getImageUrl(o.bottom_article_id),
+        itemId: o.bottom_article_id,
+        price: o.bottom_price,
+      },
+    ],
+  }));
+}
 
 export function RecommendationScreen({
   formData,
@@ -95,7 +79,9 @@ export function RecommendationScreen({
   onAdjustPreferences,
   onStartOver
 }: RecommendationScreenProps) {
-  const [expandedOutfit, setExpandedOutfit] = useState<string | null>(null);
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tryOnOpen, setTryOnOpen] = useState(false);
   const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null);
   const [userPhoto, setUserPhoto] = useState<File | null>(null);
@@ -105,10 +91,45 @@ export function RecommendationScreen({
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [generationStep, setGenerationStep] = useState<string>('');
-  const outfits = generateOutfits(formData);
 
-  const toggleExpand = (outfitId: string) => {
-    setExpandedOutfit(expandedOutfit === outfitId ? null : outfitId);
+  const fetchRecommendations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await fetch(`${RECOMMENDER_URL}/recommend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          occasion: formData.occasion,
+          category: formData.category,
+          num_outfits: formData.num_outfits,
+          max_price: formData.max_price,
+          preferred_colors: formData.preferred_colors,
+          avoid_colors: formData.avoid_colors,
+        }),
+      });
+
+      if (!resp.ok) {
+        throw new Error(`Service returned ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      setOutfits(mapApiOutfits(data.outfits || []));
+    } catch (e) {
+      console.error('Recommender API error:', e);
+      setError(e instanceof Error ? e.message : 'Failed to get recommendations');
+    } finally {
+      setLoading(false);
+    }
+  }, [formData]);
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
+
+  const handleRegenerate = () => {
+    fetchRecommendations();
+    onRegenerate();
   };
 
   const handleImageError = (itemId: string) => {
@@ -253,8 +274,8 @@ export function RecommendationScreen({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 mb-8">
-          <Button onClick={onRegenerate} variant="outline" className="rounded-full">
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button onClick={handleRegenerate} variant="outline" className="rounded-full" disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Regenerate
           </Button>
           <Button onClick={onAdjustPreferences} variant="outline" className="rounded-full">
@@ -267,80 +288,87 @@ export function RecommendationScreen({
           </Button>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-12 h-12 animate-spin text-neutral-400 mb-4" />
+            <p className="text-neutral-600 text-lg">Finding your perfect outfits...</p>
+            <p className="text-neutral-400 text-sm mt-1">This may take a few seconds</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <Card className="p-8 text-center bg-white">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <p className="text-neutral-800 font-medium mb-2">Something went wrong</p>
+            <p className="text-neutral-600 mb-4">{error}</p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={fetchRecommendations} className="bg-black hover:bg-neutral-800 text-white rounded-full">
+                Try Again
+              </Button>
+              <Button onClick={onAdjustPreferences} variant="outline" className="rounded-full">
+                Adjust Preferences
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Outfit Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {outfits.map((outfit) => (
-            <Card key={outfit.id} className="overflow-hidden bg-white hover:shadow-lg transition-shadow">
-              <div className="p-4">
-                <h3 className="font-medium text-lg mb-3">{outfit.name}</h3>
-
-                <div className="space-y-3 mb-4">
-                  {outfit.items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3">
-                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
-                        {imageErrors.has(item.id) ? (
-                          <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-xs text-neutral-500">
-                            Image not found
-                          </div>
-                        ) : (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            onError={() => handleImageError(item.id)}
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.name}</p>
-                        <p className="text-xs text-neutral-500 capitalize">{item.type}</p>
-                        {item.itemId && <p className="text-xs text-neutral-400">ID: {item.itemId}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {outfit.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      {tag}
+        {!loading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {outfits.map((outfit) => (
+              <Card key={outfit.id} className="overflow-hidden bg-white hover:shadow-lg transition-shadow">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium text-lg">{outfit.name}</h3>
+                    <Badge variant="secondary" className="text-xs">
+                      Score: {(outfit.fitnessScore * 100).toFixed(0)}%
                     </Badge>
-                  ))}
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    {outfit.items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-3">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
+                          {imageErrors.has(item.id) ? (
+                            <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-xs text-neutral-500">
+                              Image not found
+                            </div>
+                          ) : (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              onError={() => handleImageError(item.id)}
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.name}</p>
+                          <p className="text-xs text-neutral-500 capitalize">{item.type}</p>
+                          {item.price != null && <p className="text-xs text-neutral-400">${item.price.toFixed(2)}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4">
+                    <Button
+                      onClick={() => openTryOn(outfit)}
+                      variant="outline"
+                      className="w-full rounded-full"
+                    >
+                      Try this outfit on
+                    </Button>
+                  </div>
                 </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
-                <button
-                  onClick={() => toggleExpand(outfit.id)}
-                  className="w-full text-left text-sm text-neutral-600 hover:text-neutral-900 transition-colors flex items-center justify-between"
-                >
-                  <span className="font-medium">Why this works</span>
-                  {expandedOutfit === outfit.id ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </button>
-
-                {expandedOutfit === outfit.id && (
-                  <p className="text-sm text-neutral-600 mt-3 leading-relaxed">
-                    {outfit.explanation}
-                  </p>
-                )}
-
-                <div className="mt-4">
-                  <Button
-                    onClick={() => openTryOn(outfit)}
-                    variant="outline"
-                    className="w-full rounded-full"
-                  >
-                    Try this outfit on
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {outfits.length === 0 && (
+        {!loading && !error && outfits.length === 0 && (
           <Card className="p-8 text-center bg-white">
             <p className="text-neutral-600">No outfits match your current preferences. Try adjusting your constraints.</p>
             <Button onClick={onAdjustPreferences} className="mt-4 bg-black hover:bg-neutral-800 text-white rounded-full">

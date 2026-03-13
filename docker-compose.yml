@@ -24,7 +24,7 @@ services:
     environment:
       IMAGES_DIR: /data/images
     volumes:
-      - ./data/raw/hnm/images:/data/images:ro
+      - ./data/raw/images:/data/images:ro
     ports:
       - "8001:8000"
 
@@ -34,6 +34,22 @@ services:
       - "8002:8000"
     environment:
       HF_TOKEN: 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
+
+  recommender-service:
+    build:
+      context: ./services/recommender-service
+    ports:
+      - "8003:8000"
+    environment:
+      NEO4J_URI: bolt://kg-service:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: password123
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data:ro
+      - ./services/recommender-service/kg:/app/kg:ro
+    depends_on:
+      - kg-service
 
   kg-service:
     image: neo4j:latest

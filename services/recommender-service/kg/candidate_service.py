@@ -1,20 +1,48 @@
+import os
 import pandas as pd
+import joblib
 from neo4j import GraphDatabase
 
-# Connect to the Dockerize Neo4j database
-URI = "bolt://localhost:7687"
-AUTH = ("neo4j", "password123") 
-driver = GraphDatabase.driver(URI, auth=AUTH)
+# Connect to Neo4j using environment variables
+URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "password123")
+driver = GraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
-def query_neo4j(category, color, max_price, occasion=None, season=None, top_limit=100):
+# Load articles DataFrame for type enrichment
+DATA_DIR = os.environ.get("DATA_DIR", "/data")
+_articles_joblib_path = os.path.join(DATA_DIR, "kg", "clean_articles_df.joblib")
+if not os.path.exists(_articles_joblib_path):
+    # Fallback: check next to this file (local dev)
+    _articles_joblib_path = os.path.join(os.path.dirname(__file__), "clean_articles_df.joblib")
+
+articles_df = None
+if os.path.exists(_articles_joblib_path):
+    articles_df = joblib.load(_articles_joblib_path)
+    # Build a quick lookup: article_id (str) -> product_type_name
+    articles_df["article_id"] = articles_df["article_id"].astype(str).str.zfill(10)
+    _article_type_map = dict(zip(articles_df["article_id"], articles_df["product_type_name"]))
+    print(f"Loaded articles DataFrame with {len(_article_type_map)} articles for type enrichment")
+else:
+    _article_type_map = {}
+    print(f"WARNING: articles joblib not found at {_articles_joblib_path}")
+
+def query_neo4j(category, preferred_colors, max_price, occasion=None, season=None, top_limit=100):
     """Helper function to query Neo4j based on the requirements."""
 
     # Hard Constraints (Always applied)
+    # Note: max_price filters individual top price, not total outfit price.
+    # The GA handles total outfit price via its price penalty term.
     query_parts = [
         "MATCH (top:Item)-[:in_category]->(cat:Attribute) WHERE toLower(cat.id) CONTAINS toLower($category)",
-        "MATCH (top)-[:has_color]->(col:Attribute) WHERE toLower(col.id) = toLower($color)",
         "MATCH (top)-[:has_price]->(price:Attribute) WHERE toFloat(price.id) <= $max_price"
     ]
+
+    # Color constraint: match ANY from preferred_colors list, skip if empty
+    if preferred_colors:
+        query_parts.append(
+            "MATCH (top)-[:has_color]->(col:Attribute) WHERE col.id IN $preferred_colors"
+        )
 
     # Soft Constraints (Applied if they aren't None)
     if occasion:
@@ -57,7 +85,7 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
         results = session.run(
             final_query,
             category=category,
-            color=color,
+            preferred_colors=preferred_colors,
             max_price=float(max_price),
             occasion=occasion,
             season=season,
@@ -67,35 +95,47 @@ def query_neo4j(category, color, max_price, occasion=None, season=None, top_limi
 
     if not data:
         return pd.DataFrame(columns=["Top_Article", "Bottom_Article", "Lift_Score", "Top_Price", "Top_Color", "Top_Pattern", "Top_Stock_Status", "Bottom_Price", "Bottom_Color", "Bottom_Pattern", "Bottom_Stock_Status"])
-    
+
     candidate_df = pd.DataFrame(data)
     candidate_df = candidate_df.groupby("Top_Article").head(5).reset_index(drop=True)
     return candidate_df
 
-def get_ga_candidates(category, color, max_price, occasion, season, top_limit=100):
+def get_ga_candidates(category, preferred_colors, avoid_colors, max_price, occasion, season=None, top_limit=100):
     """
-    Takes requirements, queries Neo4j and outputs candidate pool
+    Takes requirements, queries Neo4j and outputs candidate pool.
+    Filters by preferred_colors (list, match ANY), post-filters avoid_colors on both tops and bottoms.
     """
-    print(f"Received request: {category}, {color}, Under ${max_price}, {occasion}, {season}")
+    print(f"Received request: {category}, preferred={preferred_colors}, avoid={avoid_colors}, Under ${max_price}, {occasion}, {season}")
 
     # Level 1 : Try strict matching with all constraints
     print("\nTrying strict matching with all constraints...")
-    df = query_neo4j(category, color, max_price, occasion, season, top_limit)
+    df = query_neo4j(category, preferred_colors, max_price, occasion, season, top_limit)
 
     # Check if we have enough candidates for GA
-    if df["Top_Article"].nunique() >= 100:
-        return df
-    
-    # Level 2 : Relax soft constraints one by one
-    print(f"Only found {df['Top_Article'].nunique()} unique tops. Dropping 'Season' constraint...")
-    df = query_neo4j(category, color, max_price, occasion=occasion, season=None, top_limit=top_limit)
+    if df["Top_Article"].nunique() < 100:
+        # Level 2 : Relax soft constraints one by one
+        print(f"Only found {df['Top_Article'].nunique()} unique tops. Dropping 'Season' constraint...")
+        df = query_neo4j(category, preferred_colors, max_price, occasion=occasion, season=None, top_limit=top_limit)
 
-    if df["Top_Article"].nunique() >= 100:
-        return df
-    
-    # Level 3 : Relax all soft constraints
-    print(f"Still only found {df['Top_Article'].nunique()} unique tops. Dropping 'Occasion' constraints...")
-    df = query_neo4j(category, color, max_price, occasion=None, season=None, top_limit=top_limit)
+    if df["Top_Article"].nunique() < 100:
+        # Level 3 : Relax all soft constraints
+        print(f"Still only found {df['Top_Article'].nunique()} unique tops. Dropping 'Occasion' constraints...")
+        df = query_neo4j(category, preferred_colors, max_price, occasion=None, season=None, top_limit=top_limit)
+
+    # Post-filter: exclude rows where Top_Color OR Bottom_Color is in avoid_colors
+    if avoid_colors and not df.empty:
+        avoid_set = set(avoid_colors)
+        mask = ~(df["Top_Color"].isin(avoid_set) | df["Bottom_Color"].isin(avoid_set))
+        df = df[mask].reset_index(drop=True)
+        print(f"After avoid_colors filtering: {len(df)} candidate pairs remaining")
+
+    # Enrich with garment types from articles DataFrame
+    if not df.empty:
+        df["Top_Article_str"] = df["Top_Article"].astype(str).str.zfill(10)
+        df["Bottom_Article_str"] = df["Bottom_Article"].astype(str).str.zfill(10)
+        df["Top_Type"] = df["Top_Article_str"].map(_article_type_map).fillna("")
+        df["Bottom_Type"] = df["Bottom_Article_str"].map(_article_type_map).fillna("")
+        df = df.drop(columns=["Top_Article_str", "Bottom_Article_str"])
 
     return df
 

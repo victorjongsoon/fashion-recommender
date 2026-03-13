@@ -9,6 +9,7 @@ export type FormData = {
   month: string;
   category: string;
   num_outfits: number;
+  max_price: number;
   preferred_colors: string[];
   avoid_colors: string[];
 };
@@ -21,6 +22,7 @@ export default function App() {
     month: '',
     category: '',
     num_outfits: 3,
+    max_price: 100,
     preferred_colors: [],
     avoid_colors: []
   });
