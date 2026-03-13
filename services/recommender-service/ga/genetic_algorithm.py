@@ -9,11 +9,13 @@ W2 = float(os.environ.get("GA_W2", "0.2"))   # pattern lift
 W3 = float(os.environ.get("GA_W3", "0.2"))   # type lift
 W4 = float(os.environ.get("GA_W4", "0.2"))   # dead stock bonus
 W5 = float(os.environ.get("GA_W5", "0.1"))   # price penalty
+W6 = float(os.environ.get("GA_W6", "0.15"))  # budget utilization bonus
 POPULATION_SIZE = int(os.environ.get("GA_POPULATION_SIZE", "50"))
 GENERATIONS = int(os.environ.get("GA_GENERATIONS", "100"))
 TOURNAMENT_SIZE = 3
 CROSSOVER_RATE = 0.7
 MUTATION_RATE = 0.2
+SELECTION_TEMP = float(os.environ.get("GA_SELECTION_TEMP", "0.1"))
 DEAD_STOCK_BONUS_SINGLE = 0.5
 DEAD_STOCK_BONUS_BOTH = 1.0
 
@@ -86,12 +88,14 @@ def fitness(candidate: dict, max_price: float) -> float:
     else:
         dead_bonus = 0.0
 
-    # Price penalty
+    # Price penalty (over budget) and budget utilization bonus (closer to budget = better)
     total_price = (candidate.get("Top_Price", 0.0) or 0.0) + (candidate.get("Bottom_Price", 0.0) or 0.0)
     if total_price > max_price:
         price_pen = (total_price - max_price) / max_price
+        budget_util = 0.0  # no bonus if over budget
     else:
         price_pen = 0.0
+        budget_util = min(total_price / max_price, 1.0) if max_price > 0 else 0.0
 
     return (
         W1 * color_score
@@ -99,6 +103,7 @@ def fitness(candidate: dict, max_price: float) -> float:
         + W3 * type_score
         + W4 * dead_bonus
         - W5 * price_pen
+        + W6 * budget_util
     )
 
 
@@ -115,11 +120,11 @@ def _crossover(parent1: dict, parent2: dict) -> tuple:
     child2 = parent2.copy()
     if random.random() < 0.5:
         # Swap tops
-        for col in ["Top_Article", "Top_Price", "Top_Color", "Top_Pattern", "Top_Stock_Status", "Top_Type"]:
+        for col in ["Top_Article", "Top_Price", "Top_Color", "Top_Pattern", "Top_Stock_Status", "Top_Type", "Top_Occasion"]:
             child1[col], child2[col] = child2.get(col), child1.get(col)
     else:
         # Swap bottoms
-        for col in ["Bottom_Article", "Bottom_Price", "Bottom_Color", "Bottom_Pattern", "Bottom_Stock_Status", "Bottom_Type"]:
+        for col in ["Bottom_Article", "Bottom_Price", "Bottom_Color", "Bottom_Pattern", "Bottom_Stock_Status", "Bottom_Type", "Bottom_Occasion"]:
             child1[col], child2[col] = child2.get(col), child1.get(col)
     return child1, child2
 
@@ -129,10 +134,10 @@ def _mutate(individual: dict, candidate_pool: list) -> dict:
     donor = random.choice(candidate_pool)
     mutant = individual.copy()
     if random.random() < 0.5:
-        for col in ["Top_Article", "Top_Price", "Top_Color", "Top_Pattern", "Top_Stock_Status", "Top_Type"]:
+        for col in ["Top_Article", "Top_Price", "Top_Color", "Top_Pattern", "Top_Stock_Status", "Top_Type", "Top_Occasion"]:
             mutant[col] = donor.get(col)
     else:
-        for col in ["Bottom_Article", "Bottom_Price", "Bottom_Color", "Bottom_Pattern", "Bottom_Stock_Status", "Bottom_Type"]:
+        for col in ["Bottom_Article", "Bottom_Price", "Bottom_Color", "Bottom_Pattern", "Bottom_Stock_Status", "Bottom_Type", "Bottom_Occasion"]:
             mutant[col] = donor.get(col)
     return mutant
 
@@ -196,14 +201,31 @@ def run_ga(candidate_df: pd.DataFrame, num_outfits: int, max_price: float = 9999
             score = fitness(ind, max_price)
             all_scored[key] = (ind, score)
 
-    # Greedy diverse selection: no duplicate tops or bottoms across returned outfits
-    scored = sorted(all_scored.values(), key=lambda x: x[1], reverse=True)
+    # Weighted random diverse selection using softmax probabilities
+    candidates_list = list(all_scored.values())
+    scores = np.array([s for _, s in candidates_list])
+
+    # Softmax with temperature: higher temp = more random, lower = more deterministic
+    exp_scores = np.exp(scores / max(SELECTION_TEMP, 1e-8))
+    probabilities = exp_scores / exp_scores.sum()
 
     selected = []
     used_tops = set()
     used_bottoms = set()
+    remaining_indices = list(range(len(candidates_list)))
 
-    for ind, score in scored:
+    while len(selected) < num_outfits and remaining_indices:
+        # Sample from remaining candidates weighted by fitness
+        remaining_probs = probabilities[remaining_indices]
+        prob_sum = remaining_probs.sum()
+        if prob_sum == 0:
+            break
+        remaining_probs = remaining_probs / prob_sum
+
+        idx = np.random.choice(remaining_indices, p=remaining_probs)
+        remaining_indices.remove(idx)
+
+        ind, score = candidates_list[idx]
         top_id = ind.get("Top_Article")
         bottom_id = ind.get("Bottom_Article")
 
@@ -215,9 +237,6 @@ def run_ga(candidate_df: pd.DataFrame, num_outfits: int, max_price: float = 9999
         selected.append(result)
         used_tops.add(top_id)
         used_bottoms.add(bottom_id)
-
-        if len(selected) >= num_outfits:
-            break
 
     print(f"GA: returning {len(selected)} diverse outfits (scored {len(all_scored)} unique pairs)")
     return selected

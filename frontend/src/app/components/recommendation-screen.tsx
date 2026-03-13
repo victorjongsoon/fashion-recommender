@@ -27,6 +27,8 @@ type ApiOutfit = {
   bottom_pattern: string;
   bottom_type: string;
   bottom_price: number;
+  top_occasion: string;
+  bottom_occasion: string;
 };
 
 type OutfitItem = {
@@ -38,6 +40,7 @@ type OutfitItem = {
   price?: number;
   pattern?: string;
   stockStatus?: string;
+  occasion?: string;
 };
 
 type Outfit = {
@@ -64,6 +67,7 @@ function mapApiOutfits(apiOutfits: ApiOutfit[]): Outfit[] {
         price: o.top_price,
         pattern: o.top_pattern,
         stockStatus: (o as Record<string, unknown>).top_stock_status as string | undefined,
+        occasion: o.top_occasion,
       },
       {
         id: `b${i + 1}`,
@@ -74,6 +78,7 @@ function mapApiOutfits(apiOutfits: ApiOutfit[]): Outfit[] {
         price: o.bottom_price,
         pattern: o.bottom_pattern,
         stockStatus: (o as Record<string, unknown>).bottom_stock_status as string | undefined,
+        occasion: o.bottom_occasion,
       },
     ],
   }));
@@ -255,7 +260,7 @@ export function RecommendationScreen({
           </div>
           <h2 className="text-3xl md:text-4xl font-light tracking-tight mb-2">Your Outfit Recommendations</h2>
           <p className="text-neutral-600">
-            {formData.occasion} • {formData.destination} • {formData.month} • {formData.category} • {formData.num_outfits} outfit{formData.num_outfits > 1 ? 's' : ''}
+            {formData.occasion} • {formData.destination} • {formData.month} • {formData.category} • {formData.num_outfits} outfit{formData.num_outfits > 1 ? 's' : ''} • Budget: ${formData.max_price}/outfit
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
             {formData.preferred_colors.length > 0 && (
@@ -445,6 +450,7 @@ function ItemDetailModal({
     { label: 'Color', value: item.name.split(' ').slice(0, -1).join(' ') || 'N/A' },
     { label: 'Pattern', value: item.pattern || 'N/A' },
     { label: 'Price', value: item.price != null ? `$${item.price.toFixed(2)}` : 'N/A' },
+    { label: 'Occasion', value: item.occasion || 'Unknown' },
     { label: 'Stock Status', value: item.stockStatus || 'Unknown' },
   ];
 
