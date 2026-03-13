@@ -33,8 +33,10 @@ def query_neo4j(category, preferred_colors, max_price, occasion=None, season=Non
     # Hard Constraints (Always applied)
     # Note: max_price filters individual top price, not total outfit price.
     # The GA handles total outfit price via its price penalty term.
+    # Category filter: match "Top" subcategory only (e.g., "Menswear" -> "Menswear Top")
+    # to avoid matching bottom items as tops and wasting LIMIT slots.
     query_parts = [
-        "MATCH (top:Item)-[:in_category]->(cat:Attribute) WHERE toLower(cat.id) CONTAINS toLower($category)",
+        "MATCH (top:Item)-[:in_category]->(cat:Attribute) WHERE cat.id = ($category + ' Top')",
         "MATCH (top)-[:has_price]->(price:Attribute) WHERE toFloat(price.id) <= $max_price"
     ]
 
@@ -50,9 +52,12 @@ def query_neo4j(category, preferred_colors, max_price, occasion=None, season=Non
     if season:
         query_parts.append("MATCH (top)-[:has_season]->(sea:Attribute) WHERE toLower(sea.id) = toLower($season)")
 
-    # Assemble the final query
+    # Collect distinct tops, randomly sample, then expand to bottom matches
     final_query = "\n".join(query_parts) + """
-    WITH top LIMIT $top_limit
+    WITH DISTINCT top
+    WITH top, rand() AS r
+    ORDER BY r
+    LIMIT $top_limit
 
     // --- Transverse the Bridge ---
     MATCH (top)-[match:best_matches_with]->(bottom:Item)
@@ -82,7 +87,6 @@ def query_neo4j(category, preferred_colors, max_price, occasion=None, season=Non
            bottom_pattern.id AS Bottom_Pattern,
            bottom_stock.id AS Bottom_Stock_Status,
            bottom_occ.id AS Bottom_Occasion
-    ORDER BY top.id DESC
     """
 
     with driver.session() as session:
@@ -114,14 +118,15 @@ def get_ga_candidates(category, preferred_colors, avoid_colors, max_price, occas
     # Level 1 : Try strict matching with all constraints
     print("\nTrying strict matching with all constraints...")
     df = query_neo4j(category, preferred_colors, max_price, occasion, season, top_limit)
+    print(f"Found {df['Top_Article'].nunique()} unique tops with strict constraints")
 
-    # Check if we have enough candidates for GA
-    if df["Top_Article"].nunique() < 100:
+    # Only relax if we have very few candidates (< 10 unique tops)
+    if df["Top_Article"].nunique() < 10:
         # Level 2 : Relax soft constraints one by one
         print(f"Only found {df['Top_Article'].nunique()} unique tops. Dropping 'Season' constraint...")
         df = query_neo4j(category, preferred_colors, max_price, occasion=occasion, season=None, top_limit=top_limit)
 
-    if df["Top_Article"].nunique() < 100:
+    if df["Top_Article"].nunique() < 10:
         # Level 3 : Relax all soft constraints
         print(f"Still only found {df['Top_Article'].nunique()} unique tops. Dropping 'Occasion' constraints...")
         df = query_neo4j(category, preferred_colors, max_price, occasion=None, season=None, top_limit=top_limit)
