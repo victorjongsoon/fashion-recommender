@@ -41,6 +41,8 @@ type OutfitItem = {
   itemId?: string;
   price?: number;
   pattern?: string;
+  stockStatus?: string;
+  occasion?: string;
 };
 
 type Outfit = {
@@ -82,6 +84,8 @@ function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number): Outfit[] {
         itemId: o.top_article_id,
         price: o.top_price,
         pattern: o.top_pattern,
+        stockStatus: o.top_stock_status,
+        occasion: o.top_occasion,
       },
       {
         id: `b${groupIdx}-${i}`,
@@ -91,6 +95,8 @@ function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number): Outfit[] {
         itemId: o.bottom_article_id,
         price: o.bottom_price,
         pattern: o.bottom_pattern,
+        stockStatus: o.bottom_stock_status,
+        occasion: o.bottom_occasion,
       },
     ],
   }));
@@ -128,6 +134,14 @@ export function RecommendationScreen({
   const [groups, setGroups] = useState<TripGroup[]>([]);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [detailItem, setDetailItem] = useState<OutfitItem | null>(null);
+  const [tryOnOpen, setTryOnOpen] = useState(false);
+  const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null);
+  const [userPhoto, setUserPhoto] = useState<File | null>(null);
+  const [userPhotoPreview, setUserPhotoPreview] = useState<string | null>(null);
+  const [tryOnMode, setTryOnMode] = useState<'top' | 'bottom' | 'both' | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [generationStep, setGenerationStep] = useState<string>('');
 
   const fetchAll = useCallback(async () => {
     const requests = buildRequests(formData);
@@ -193,6 +207,92 @@ export function RecommendationScreen({
 
   const handleImageError = (itemId: string) =>
     setImageErrors(prev => new Set([...prev, itemId]));
+
+  const openTryOn = (outfit: Outfit) => {
+    setSelectedOutfit(outfit);
+    setTryOnOpen(true);
+    setUserPhoto(null);
+    setUserPhotoPreview(null);
+    setResultUrl(null);
+    setIsGenerating(false);
+    setTryOnMode(null);
+    setGenerationStep('');
+  };
+
+  const closeTryOn = () => {
+    setTryOnOpen(false);
+    setSelectedOutfit(null);
+    setUserPhoto(null);
+    setUserPhotoPreview(null);
+    setResultUrl(null);
+    setTryOnMode(null);
+    setIsGenerating(false);
+    setGenerationStep('');
+  };
+
+  const onUserPhotoChange = (f?: File) => {
+    if (!f) return;
+    setUserPhoto(f);
+    setUserPhotoPreview(URL.createObjectURL(f));
+  };
+
+  async function callVtonService(bodyImage: File, garmentItem: OutfitItem): Promise<string | null> {
+    try {
+      const vtonServiceUrl = import.meta.env.VITE_VTON_SERVICE_URL || 'http://localhost:8002';
+      const form = new window.FormData();
+      form.append('photo', bodyImage);
+      form.append('garment_url', garmentItem.image);
+      form.append('garment_des', `${garmentItem.name} ${garmentItem.type}`);
+      const resp = await fetch(`${vtonServiceUrl}/tryon`, { method: 'POST', body: form });
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json?.image_url) return json.image_url;
+      }
+      return null;
+    } catch (e) {
+      console.error('VTON service error:', e);
+      return null;
+    }
+  }
+
+  async function handleGenerateTryOn() {
+    if (!userPhoto || !selectedOutfit || !tryOnMode) return;
+    setIsGenerating(true);
+    setResultUrl(null);
+    try {
+      let currentImage = userPhoto;
+      const topItem = selectedOutfit.items.find(item => item.type === 'top');
+      const bottomItem = selectedOutfit.items.find(item => item.type === 'bottom');
+
+      if ((tryOnMode === 'top' || tryOnMode === 'both') && topItem) {
+        setGenerationStep('Dressing top...');
+        const topResult = await callVtonService(currentImage, topItem);
+        if (topResult) {
+          const topBlob = await fetch(topResult).then(r => r.blob());
+          currentImage = new File([topBlob], 'tryon-top.jpg', { type: 'image/jpeg' });
+          setResultUrl(topResult);
+        } else {
+          throw new Error('Failed to dress top');
+        }
+      }
+
+      if ((tryOnMode === 'bottom' || tryOnMode === 'both') && bottomItem) {
+        setGenerationStep('Dressing bottom...');
+        const bottomResult = await callVtonService(currentImage, bottomItem);
+        if (bottomResult) {
+          setResultUrl(bottomResult);
+        } else {
+          throw new Error('Failed to dress bottom');
+        }
+      }
+      setGenerationStep('');
+    } catch (e) {
+      console.error('Try-on error:', e);
+      setGenerationStep('');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   const totalLoading = groups.some(g => g.loading);
   const totalOutfits = groups.reduce((sum, g) => sum + g.outfits.length, 0);
@@ -323,6 +423,13 @@ export function RecommendationScreen({
                           </div>
                         ))}
                       </div>
+                      <Button
+                        onClick={() => openTryOn(outfit)}
+                        variant="outline"
+                        className="w-full rounded-full mt-3 text-xs"
+                      >
+                        Try this outfit on
+                      </Button>
                     </Card>
                   ))}
                 </div>
@@ -331,6 +438,23 @@ export function RecommendationScreen({
           ))}
         </div>
       </div>
+
+      {/* Try-On Modal */}
+      <TryOnModal
+        open={tryOnOpen}
+        outfit={selectedOutfit}
+        onClose={closeTryOn}
+        onPhotoChange={onUserPhotoChange}
+        photoPreview={userPhotoPreview}
+        onGenerate={handleGenerateTryOn}
+        isGenerating={isGenerating}
+        resultUrl={resultUrl}
+        tryOnMode={tryOnMode}
+        onTryOnModeChange={setTryOnMode}
+        generationStep={generationStep}
+        imageErrors={imageErrors}
+        handleImageError={handleImageError}
+      />
 
       {/* Item Detail Modal */}
       {detailItem && (
@@ -354,6 +478,209 @@ export function RecommendationScreen({
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+function TryOnModal({
+  open,
+  outfit,
+  onClose,
+  onPhotoChange,
+  photoPreview,
+  onGenerate,
+  isGenerating,
+  resultUrl,
+  tryOnMode,
+  onTryOnModeChange,
+  generationStep,
+  imageErrors,
+  handleImageError,
+}: {
+  open: boolean;
+  outfit: Outfit | null;
+  onClose: () => void;
+  onPhotoChange: (f?: File) => void;
+  photoPreview: string | null;
+  onGenerate: () => void;
+  isGenerating: boolean;
+  resultUrl: string | null;
+  tryOnMode: 'top' | 'bottom' | 'both' | null;
+  onTryOnModeChange: (mode: 'top' | 'bottom' | 'both') => void;
+  generationStep: string;
+  imageErrors: Set<string>;
+  handleImageError: (itemId: string) => void;
+}) {
+  if (!open || !outfit) return null;
+
+  const hasTop = outfit.items.some(item => item.type === 'top');
+  const hasBottom = outfit.items.some(item => item.type === 'bottom');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
+        {isGenerating && (
+          <div className="absolute inset-0 bg-white/60 z-50 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 p-4">
+              <Loader2 className="w-10 h-10 animate-spin text-black" />
+              <div className="text-sm font-medium text-neutral-800">{generationStep || 'Generating try-on...'}</div>
+              <div className="text-xs text-neutral-600">This may take a while — do not close this window.</div>
+            </div>
+          </div>
+        )}
+
+        <div className="sticky top-0 p-6 border-b bg-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-semibold">{outfit.name} - Virtual Try-On</h3>
+              <p className="text-sm text-neutral-500 mt-1">Try this outfit on your full-body photo</p>
+            </div>
+            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="mb-8">
+            <h4 className="text-lg font-semibold mb-3">Step 1: Upload Your Full-Body Photo</h4>
+            <p className="text-sm text-neutral-600 mb-4">
+              Please upload a clear, full-body, front-facing photo for best results.
+            </p>
+            <div className="border-2 border-dashed border-neutral-200 rounded-lg p-6">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => onPhotoChange(e.target.files?.[0] ?? undefined)}
+                className="mb-4 w-full"
+                disabled={isGenerating}
+              />
+              {photoPreview && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">Photo preview:</p>
+                  <div className="w-full max-h-[60vh] rounded-lg overflow-auto bg-neutral-100 flex items-center justify-center">
+                    <img src={photoPreview} alt="user preview" className="max-h-[60vh] w-auto object-contain" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {photoPreview && (
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold mb-3">Step 2: Select What to Try On</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {hasTop && (
+                  <button
+                    onClick={() => onTryOnModeChange('top')}
+                    disabled={isGenerating}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      tryOnMode === 'top' ? 'border-black bg-black/5' : 'border-neutral-200 hover:border-neutral-300'
+                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="font-medium">Try Top Only</div>
+                    <div className="text-xs text-neutral-500 mt-1">Dress the top piece</div>
+                  </button>
+                )}
+                {hasBottom && (
+                  <button
+                    onClick={() => onTryOnModeChange('bottom')}
+                    disabled={isGenerating}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      tryOnMode === 'bottom' ? 'border-black bg-black/5' : 'border-neutral-200 hover:border-neutral-300'
+                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="font-medium">Try Bottom Only</div>
+                    <div className="text-xs text-neutral-500 mt-1">Dress the bottom piece</div>
+                  </button>
+                )}
+                {hasTop && hasBottom && (
+                  <button
+                    onClick={() => onTryOnModeChange('both')}
+                    disabled={isGenerating}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      tryOnMode === 'both' ? 'border-black bg-black/5' : 'border-neutral-200 hover:border-neutral-300'
+                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="font-medium">Try Both</div>
+                    <div className="text-xs text-neutral-500 mt-1">Dress top and bottom</div>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {photoPreview && tryOnMode && (
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold mb-3">Outfit Items to Apply</h4>
+              <div className="space-y-3">
+                {outfit.items.map(item => {
+                  const shouldInclude =
+                    (tryOnMode === 'top' && item.type === 'top') ||
+                    (tryOnMode === 'bottom' && item.type === 'bottom') ||
+                    (tryOnMode === 'both');
+                  if (!shouldInclude) return null;
+                  return (
+                    <div key={item.id} className="flex items-center gap-4 p-3 bg-neutral-50 rounded-lg">
+                      <div className="w-20 h-20 rounded-md overflow-hidden bg-neutral-100 flex-shrink-0">
+                        {imageErrors.has(item.id) ? (
+                          <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-xs text-neutral-500">
+                            Not found
+                          </div>
+                        ) : (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={() => handleImageError(item.id)}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-sm text-neutral-500 capitalize">{item.type}</div>
+                        {item.itemId && <div className="text-xs text-neutral-400">ID: {item.itemId}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {resultUrl && (
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold mb-3">Try-On Result</h4>
+              <div className="w-full rounded-lg overflow-hidden bg-neutral-100 flex items-center justify-center">
+                <img src={resultUrl} alt="tryon result" className="w-full h-auto object-contain" />
+              </div>
+              <p className="text-xs text-neutral-500 mt-2">This is an AI-generated visualization. Results may vary.</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 flex-wrap">
+            {photoPreview && tryOnMode && (
+              <Button
+                onClick={onGenerate}
+                disabled={isGenerating || !tryOnMode}
+                className="rounded-lg bg-black hover:bg-neutral-800 text-white flex items-center gap-2"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {generationStep || 'Generating...'}
+                  </>
+                ) : (
+                  <>Generate Try-On</>
+                )}
+              </Button>
+            )}
+            <Button onClick={onClose} disabled={isGenerating} variant="outline" className="rounded-lg">
+              Close
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
