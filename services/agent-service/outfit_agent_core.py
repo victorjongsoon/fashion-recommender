@@ -35,7 +35,7 @@ PRE-REQUISITES
 import sys, json, re, datetime, urllib.request, urllib.parse
 import ollama
 
-OLLAMA_MODEL = "gemma3"
+OLLAMA_MODEL = "gemma4"
 
 RESET="\033[0m"; BOLD="\033[1m"; DIM="\033[2m"
 CYAN="\033[36m"; GREEN="\033[32m"; YELLOW="\033[33m"
