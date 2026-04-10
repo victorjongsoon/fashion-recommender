@@ -5,6 +5,7 @@ import { ArrowRight, MapPin, Calendar, Briefcase, Palette, ChevronDown, ChevronU
 import type { FormData } from '../App';
 
 const AGENT_URL = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8004';
+const WEATHER_SERVICE_URL = import.meta.env.VITE_WEATHER_SERVICE_URL || 'http://localhost:8005';
 
 interface ContextInputScreenProps {
   initialData: FormData;
@@ -66,9 +67,22 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
   const isFormValid = formData.occasion && formData.destination && formData.month &&
     formData.category && formData.num_outfits >= 1;
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFormValid) onSubmit(formData);
+    if (!isFormValid) return;
+    try {
+      const resp = await fetch(
+        `${WEATHER_SERVICE_URL}/weather?destination=${encodeURIComponent(formData.destination)}&month=${encodeURIComponent(formData.month)}`
+      );
+      if (resp.ok) {
+        const weather = await resp.json();
+        onSubmit({ ...formData, season: weather.season });
+        return;
+      }
+    } catch (e) {
+      console.error('Weather service error:', e);
+    }
+    onSubmit(formData);
   };
 
   // ── Chat state ─────────────────────────────────────────────────────────────

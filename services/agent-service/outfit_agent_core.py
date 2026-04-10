@@ -32,7 +32,7 @@ PRE-REQUISITES
   python outfit_agent.py
 """
 
-import sys, json, re, datetime, urllib.request, urllib.parse
+import sys, os, json, re, datetime, urllib.request, urllib.parse
 import ollama
 
 OLLAMA_MODEL = "gemma4"
@@ -126,31 +126,19 @@ def _geocode(place):
     print(info(f"{RED}Cannot geocode '{place}' — using season estimate{RESET}"))
     return None, None, place
 
+WEATHER_SERVICE_URL = os.environ.get("WEATHER_SERVICE_URL", "http://localhost:8005")
+
 def get_weather(destination, month):
+    """Call the weather-service for destination + month data."""
     mon_num = next((v for k,v in MONTH_TO_NUM.items() if k.startswith(month[:3])), 3)
     season  = _season(mon_num)
     try:
-        lat, lon, resolved = _geocode(destination)
-        if lat is None: raise ValueError("geocode failed")
-        all_t, all_p = [], []
-        for yr in [2015,2016,2017,2018,2019]:
-            days  = 28 if mon_num==2 else 30 if mon_num in (4,6,9,11) else 31
-            start = f"{yr}-{mon_num:02d}-01"; end = f"{yr}-{mon_num:02d}-{days:02d}"
-            url   = (f"https://archive-api.open-meteo.com/v1/archive"
-                     f"?latitude={lat}&longitude={lon}&start_date={start}&end_date={end}"
-                     f"&daily=temperature_2m_mean,precipitation_sum&timezone=auto")
-            try:
-                d = _fetch_json(url).get("daily",{})
-                all_t.extend(t for t in d.get("temperature_2m_mean",[]) if t is not None)
-                all_p.extend(p for p in d.get("precipitation_sum",[])   if p is not None)
-            except Exception: pass
-        if not all_t: raise ValueError("no data")
-        avg_t = round(sum(all_t)/len(all_t), 1)
-        rain  = round(min((sum(all_p)/len([2015,2016,2017,2018,2019]) if all_p else 60)/150, 1.0), 2)
-        return {"avg_temp_c":avg_t,"season":season,"rain_prob":rain,
-                "source":f"Open-Meteo ({resolved}, {month.title()})"}
+        q_dest  = urllib.parse.quote(destination)
+        q_month = urllib.parse.quote(month)
+        url = f"{WEATHER_SERVICE_URL}/weather?destination={q_dest}&month={q_month}"
+        return _fetch_json(url)
     except Exception as e:
-        print(info(f"{YELLOW}Weather error ({e}) — season estimate{RESET}"))
+        print(info(f"{YELLOW}Weather service error ({e}) — season estimate{RESET}"))
         return {"avg_temp_c":20,"season":season,"rain_prob":0.30,"source":"fallback"}
 
 

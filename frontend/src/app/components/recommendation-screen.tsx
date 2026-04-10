@@ -7,6 +7,7 @@ import type { FormData, KgInput } from '../App';
 
 const RECOMMENDER_URL = import.meta.env.VITE_RECOMMENDER_SERVICE_URL || 'http://localhost:8003';
 const IMAGE_SERVICE_URL = import.meta.env.VITE_IMAGE_SERVICE_URL || 'http://localhost:8001';
+const WEATHER_SERVICE_URL = import.meta.env.VITE_WEATHER_SERVICE_URL || 'http://localhost:8005';
 
 interface RecommendationScreenProps {
   formData: FormData;
@@ -102,13 +103,26 @@ function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number): Outfit[] {
   }));
 }
 
+async function fetchWeather(destination: string, month: string) {
+  try {
+    const resp = await fetch(
+      `${WEATHER_SERVICE_URL}/weather?destination=${encodeURIComponent(destination)}&month=${encodeURIComponent(month)}`
+    );
+    if (resp.ok) return await resp.json();
+  } catch (e) {
+    console.error('Weather service error:', e);
+  }
+  return { avg_temp_c: 20, season: 'summer', rain_prob: 0.3, source: 'fallback' };
+}
+
 // Build the list of requests to make
-function buildRequests(formData: FormData): KgInput[] {
+async function buildRequests(formData: FormData): Promise<KgInput[]> {
   // If chatbot provided kg_inputs, use them directly
   if (formData.kg_inputs && formData.kg_inputs.length > 0) {
     return formData.kg_inputs;
   }
-  // Otherwise fall back to single request from form
+  // Otherwise fetch weather and build single request from form
+  const weather = await fetchWeather(formData.destination, formData.month);
   return [{
     occasion:         formData.occasion,
     category:         formData.category,
@@ -116,12 +130,12 @@ function buildRequests(formData: FormData): KgInput[] {
     max_price:        formData.max_price,
     preferred_colors: formData.preferred_colors,
     avoid_colors:     formData.avoid_colors,
-    season:           formData.season,
+    season:           weather.season,
     gender:           formData.category === 'Menswear' ? 'male' : 'female',
     destination:      formData.destination,
     month:            formData.month,
-    avg_temp_c:       0,
-    rain_prob:        0,
+    avg_temp_c:       weather.avg_temp_c,
+    rain_prob:        weather.rain_prob,
   }];
 }
 
@@ -144,7 +158,7 @@ export function RecommendationScreen({
   const [generationStep, setGenerationStep] = useState<string>('');
 
   const fetchAll = useCallback(async () => {
-    const requests = buildRequests(formData);
+    const requests = await buildRequests(formData);
 
     // Deduplicate by season (not month) — same season = same KG results
     const seen = new Set<string>();
