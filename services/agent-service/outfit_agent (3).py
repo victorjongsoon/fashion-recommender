@@ -23,7 +23,7 @@ import urllib.parse
 import ollama
 
 # ── Model ─────────────────────────────────────────────────────────────────────
-OLLAMA_MODEL = "gemma4"
+OLLAMA_MODEL = "gemma3"
 
 # ── ANSI colours ──────────────────────────────────────────────────────────────
 RESET   = "\033[0m";  BOLD    = "\033[1m";  DIM     = "\033[2m"
