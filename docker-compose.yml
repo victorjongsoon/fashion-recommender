@@ -7,8 +7,8 @@ services:
       POSTGRES_PASSWORD: inventory
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/01_init.sql
-      # - ./db/load_hnm.sql:/docker-entrypoint-initdb.d/02_load.sql  ← uncomment when you have articles.csv
-      # - ./data/raw:/data/hnm:ro                                     ← uncomment when you have articles.csv
+      - ./db/load_hnm.sql:/docker-entrypoint-initdb.d/02_load.sql
+      - ./data/raw:/data/hnm:ro
     ports:
       - "5432:5432"
 
@@ -26,6 +26,7 @@ services:
     environment:
       IMAGES_DIR: /data/images
     volumes:
+      - ./data/raw/images:/data/images:ro
       - ./data/raw/images:/data/images:ro
     ports:
       - "8001:8000"
