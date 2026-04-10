@@ -27,7 +27,6 @@ services:
       IMAGES_DIR: /data/images
     volumes:
       - ./data/raw/images:/data/images:ro
-      - ./data/raw/images:/data/images:ro
     ports:
       - "8001:8000"
 
