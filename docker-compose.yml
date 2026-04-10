@@ -61,31 +61,14 @@ services:
       - ollama_models:/root/.ollama
     restart: unless-stopped
 
-  ollama-init:
-    image: curlimages/curl:latest
-    container_name: ollama-init
-    depends_on:
-      - ollama
-    entrypoint: >
-      sh -c "
-        until curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; do
-          echo 'Waiting for Ollama...'; sleep 3;
-        done;
-        curl -sf -X POST http://ollama:11434/api/pull
-          -H 'Content-Type: application/json'
-          -d '{\"name\":\"gemma4\"}';
-        echo 'Model ready!'
-      "
-    restart: "no"
-
   agent-service:
     build:
       context: ./services/agent-service
     container_name: agent-service
     ports:
-      - "8004:8000"          # 8003 already used by recommender-service!
+      - "8004:8000"
     depends_on:
-      - ollama-init
+      - ollama
     environment:
       - OLLAMA_HOST=http://ollama:11434
     restart: unless-stopped
