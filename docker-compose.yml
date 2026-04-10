@@ -73,7 +73,7 @@ services:
         done;
         curl -sf -X POST http://ollama:11434/api/pull
           -H 'Content-Type: application/json'
-          -d '{\"name\":\"gemma3\"}';
+          -d '{\"name\":\"gemma4\"}';
         echo 'Model ready!'
       "
     restart: "no"
