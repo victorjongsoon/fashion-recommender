@@ -8,7 +8,7 @@ ENDPOINTS
   POST /api/message    → send one chat reply (returns next question or final results)
 """
 
-import uuid, json, re, os, datetime
+import uuid, json, re, os, datetime, ollama as _ollama
 from itertools import groupby
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +30,20 @@ from outfit_agent_core import (
 )
 
 app = FastAPI(title="StyleAdvisor Agent Service", version="2.0.0")
+
+@app.on_event("startup")
+def _pull_model():
+    from outfit_agent_core import OLLAMA_MODEL
+    try:
+        models = [m["model"] for m in _ollama.list()["models"]]
+        if not any(OLLAMA_MODEL in m for m in models):
+            print(f"Pulling {OLLAMA_MODEL}...")
+            _ollama.pull(OLLAMA_MODEL)
+            print(f"{OLLAMA_MODEL} ready.")
+        else:
+            print(f"{OLLAMA_MODEL} already available.")
+    except Exception as e:
+        print(f"Warning: could not pull model: {e}")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
