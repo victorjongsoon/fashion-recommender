@@ -152,7 +152,7 @@ export function RecommendationScreen({
   const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null);
   const [userPhoto, setUserPhoto] = useState<File | null>(null);
   const [userPhotoPreview, setUserPhotoPreview] = useState<string | null>(null);
-  const [tryOnMode, setTryOnMode] = useState<'top' | 'bottom' | 'both' | null>(null);
+  const [tryOnMode, setTryOnMode] = useState<'top' | 'bottom' | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [generationStep, setGenerationStep] = useState<string>('');
@@ -278,7 +278,7 @@ export function RecommendationScreen({
       const topItem = selectedOutfit.items.find(item => item.type === 'top');
       const bottomItem = selectedOutfit.items.find(item => item.type === 'bottom');
 
-      if ((tryOnMode === 'top' || tryOnMode === 'both') && topItem) {
+      if (tryOnMode === 'top' && topItem) {
         setGenerationStep('Dressing top...');
         const topResult = await callVtonService(currentImage, topItem);
         if (topResult) {
@@ -290,7 +290,7 @@ export function RecommendationScreen({
         }
       }
 
-      if ((tryOnMode === 'bottom' || tryOnMode === 'both') && bottomItem) {
+      if (tryOnMode === 'bottom' && bottomItem) {
         setGenerationStep('Dressing bottom...');
         const bottomResult = await callVtonService(currentImage, bottomItem);
         if (bottomResult) {
@@ -327,7 +327,6 @@ export function RecommendationScreen({
             Your Outfit Recommendations
           </h2>
           <p className="text-neutral-500 text-sm">
-            {groups.length} trip{groups.length > 1 ? 's' : ''} ·{' '}
             {totalLoading ? 'Loading...' : `${totalOutfits} outfit${totalOutfits !== 1 ? 's' : ''} found`}
           </p>
           {/* Colour badges */}
@@ -362,20 +361,26 @@ export function RecommendationScreen({
           {groups.map((group, gIdx) => (
             <div key={gIdx}>
               {/* Group header */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-medium">{group.label}</h3>
-                  <div className="flex flex-wrap gap-3 text-xs text-neutral-500 mt-1">
-                    {group.season && <span className="capitalize">🌤 {group.season}</span>}
-                    {group.avg_temp_c !== undefined && group.avg_temp_c > 0 && (
-                      <span>🌡 {group.avg_temp_c}°C</span>
-                    )}
-                    {group.rain_prob !== undefined && group.rain_prob > 0 && (
-                      <span>☂️ {Math.round(group.rain_prob * 100)}% rain</span>
-                    )}
-                  </div>
+              <div className="mb-4">
+                <h3 className="text-xl font-medium">{group.destination}</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(group.season || group.month) && (
+                    <Badge variant="secondary" className="capitalize">
+                      {group.season || group.month}
+                    </Badge>
+                  )}
+                  <Badge variant="secondary" className="capitalize">{group.occasion}</Badge>
+                  <Badge variant="secondary" className="capitalize">{group.category}</Badge>
+                  <Badge variant="secondary">Budget ${group.max_price}</Badge>
                 </div>
-                <div className="h-px flex-1 bg-neutral-200" />
+                <div className="flex flex-wrap gap-3 text-xs text-neutral-500 mt-3">
+                  {group.avg_temp_c !== undefined && (
+                    <span>🌡 {group.avg_temp_c}°C</span>
+                  )}
+                  {group.rain_prob !== undefined && (
+                    <span>☂️ {Math.round(group.rain_prob * 100)}% rain</span>
+                  )}
+                </div>
               </div>
 
               {/* Loading */}
@@ -565,8 +570,8 @@ function TryOnModal({
   onGenerate: () => void;
   isGenerating: boolean;
   resultUrl: string | null;
-  tryOnMode: 'top' | 'bottom' | 'both' | null;
-  onTryOnModeChange: (mode: 'top' | 'bottom' | 'both') => void;
+  tryOnMode: 'top' | 'bottom' | null;
+  onTryOnModeChange: (mode: 'top' | 'bottom') => void;
   generationStep: string;
   imageErrors: Set<string>;
   handleImageError: (itemId: string) => void;
@@ -654,18 +659,6 @@ function TryOnModal({
                     <div className="text-xs text-neutral-500 mt-1">Dress the bottom piece</div>
                   </button>
                 )}
-                {hasTop && hasBottom && (
-                  <button
-                    onClick={() => onTryOnModeChange('both')}
-                    disabled={isGenerating}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      tryOnMode === 'both' ? 'border-black bg-black/5' : 'border-neutral-200 hover:border-neutral-300'
-                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <div className="font-medium">Try Both</div>
-                    <div className="text-xs text-neutral-500 mt-1">Dress top and bottom</div>
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -677,8 +670,7 @@ function TryOnModal({
                 {outfit.items.map(item => {
                   const shouldInclude =
                     (tryOnMode === 'top' && item.type === 'top') ||
-                    (tryOnMode === 'bottom' && item.type === 'bottom') ||
-                    (tryOnMode === 'both');
+                    (tryOnMode === 'bottom' && item.type === 'bottom');
                   if (!shouldInclude) return null;
                   return (
                     <div key={item.id} className="flex items-center gap-4 p-3 bg-neutral-50 rounded-lg">
