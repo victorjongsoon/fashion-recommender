@@ -45,6 +45,7 @@ type OutfitItem = {
   stockStatus?: string;
   occasion?: string;
   season?: string;
+  color?: string;
 };
 
 type Outfit = {
@@ -89,6 +90,7 @@ function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number, season?: strin
         stockStatus: o.top_stock_status,
         occasion: o.top_occasion,
         season: season,
+        color: o.top_color,
       },
       {
         id: `b${groupIdx}-${i}`,
@@ -101,6 +103,7 @@ function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number, season?: strin
         stockStatus: o.bottom_stock_status,
         occasion: o.bottom_occasion,
         season: season,
+        color: o.bottom_color,
       },
     ],
   }));
@@ -522,6 +525,13 @@ export function RecommendationScreen({
                 <span className="text-neutral-400">Type:</span> {detailItem.type}
               </p>
 
+              {/* Color */}
+              {detailItem.color && (
+                <p className="capitalize">
+                  <span className="text-neutral-400">Color:</span> {detailItem.color}
+                </p>
+              )}
+
               {/* Pattern */}
               {detailItem.pattern && (
                 <p className="capitalize">
@@ -532,7 +542,7 @@ export function RecommendationScreen({
               {/* Occasion */}
               {detailItem.occasion && (
                 <p className="capitalize">
-                  <span className="text-neutral-400">Best for:</span> {detailItem.occasion}
+                  <span className="text-neutral-400">Occasion:</span> {detailItem.occasion}
                 </p>
               )}
 
