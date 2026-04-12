@@ -1,16 +1,23 @@
 """
-Weather Service — provides weather data for destinations.
+Weather Service — returns the season for a destination + month.
+
+Calls Open-Meteo's free geocoding API to verify the destination exists and to
+detect whether it's in the Southern Hemisphere (so July in Sydney = winter, not
+summer). Falls back to a Northern-Hemisphere month→season map if the geocoder
+is unreachable.
 
 ENDPOINTS
   GET  /health                          → health check
-  GET  /weather?destination=X&month=Y   → weather data for destination + month
+  GET  /weather?destination=X&month=Y   → { destination, resolved, month,
+                                             season, verified, source }
 """
+from __future__ import annotations
 
-import json, urllib.request, urllib.parse
+import httpx
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Weather Service", version="1.0.0")
+app = FastAPI(title="Weather Service", version="2.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,39 +26,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MONTH_TO_NUM = {m: i for i, m in enumerate(
-    ["january", "february", "march", "april", "may", "june",
-     "july", "august", "september", "october", "november", "december"], 1)}
+# ── Month → season (Northern Hemisphere) ─────────────────────────────────────
+_MONTHS = [
+    "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december",
+]
+_MONTH_TO_NUM = {m: i for i, m in enumerate(_MONTHS, 1)}
+_MONTH_ABBR = {m[:3]: m for m in _MONTHS}
 
-MONTH_ABBR = {
-    "jan": "january", "feb": "february", "mar": "march", "apr": "april",
-    "may": "may", "jun": "june", "jul": "july", "aug": "august",
-    "sep": "september", "oct": "october", "nov": "november", "dec": "december",
+_NH_SEASON = {
+    12: "winter", 1: "winter", 2: "winter",
+    3: "spring",  4: "spring", 5: "spring",
+    6: "summer",  7: "summer", 8: "summer",
+    9: "autumn", 10: "autumn", 11: "autumn",
 }
+_FLIP = {"winter": "summer", "summer": "winter",
+         "spring": "autumn", "autumn": "spring"}
+
+GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
 
 
-def _season(n: int) -> str:
-    if n in (3, 4, 5):   return "spring"
-    if n in (6, 7, 8):   return "summer"
-    if n in (9, 10, 11): return "autumn"
-    return "winter"
+def _parse_month(raw: str) -> int | None:
+    s = (raw or "").strip().lower()
+    if s in _MONTH_TO_NUM:
+        return _MONTH_TO_NUM[s]
+    if s[:3] in _MONTH_ABBR:
+        return _MONTH_TO_NUM[_MONTH_ABBR[s[:3]]]
+    return None
 
 
-def _fetch_json(url: str) -> dict:
-    with urllib.request.urlopen(url, timeout=10) as r:
-        return json.loads(r.read().decode())
-
-
-def _geocode(place: str):
-    q = urllib.parse.quote(place)
-    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=1&language=en&format=json"
+def _geocode(place: str) -> dict | None:
+    """Return {name, country, latitude, longitude} or None if not found."""
     try:
-        res = _fetch_json(url).get("results", [])
-        if res:
-            return res[0]["latitude"], res[0]["longitude"], res[0].get("name", place)
+        with httpx.Client(timeout=5.0) as c:
+            r = c.get(GEOCODE_URL, params={
+                "name": place, "count": 1, "language": "en", "format": "json",
+            })
+            r.raise_for_status()
+            results = (r.json() or {}).get("results") or []
+            return results[0] if results else None
     except Exception:
-        pass
-    return None, None, place
+        return None
 
 
 @app.get("/health")
@@ -62,57 +77,53 @@ def health():
 @app.get("/weather")
 def weather(
     destination: str = Query(..., description="City or place name"),
-    month: str = Query(..., description="Month name (e.g. january, feb)"),
+    month: str = Query(..., description="Month name (e.g. January, jan)"),
 ):
-    # Normalise month
-    month_lower = month.strip().lower()
-    if month_lower[:3] in MONTH_ABBR:
-        month_lower = MONTH_ABBR[month_lower[:3]]
-    mon_num = MONTH_TO_NUM.get(month_lower, 3)
-    season = _season(mon_num)
-
-    try:
-        lat, lon, resolved = _geocode(destination)
-        if lat is None:
-            raise ValueError("geocode failed")
-
-        all_t, all_p = [], []
-        for yr in [2015, 2016, 2017, 2018, 2019]:
-            days = 28 if mon_num == 2 else 30 if mon_num in (4, 6, 9, 11) else 31
-            start = f"{yr}-{mon_num:02d}-01"
-            end = f"{yr}-{mon_num:02d}-{days:02d}"
-            url = (
-                f"https://archive-api.open-meteo.com/v1/archive"
-                f"?latitude={lat}&longitude={lon}&start_date={start}&end_date={end}"
-                f"&daily=temperature_2m_mean,precipitation_sum&timezone=auto"
-            )
-            try:
-                d = _fetch_json(url).get("daily", {})
-                all_t.extend(t for t in d.get("temperature_2m_mean", []) if t is not None)
-                all_p.extend(p for p in d.get("precipitation_sum", []) if p is not None)
-            except Exception:
-                pass
-
-        if not all_t:
-            raise ValueError("no data")
-
-        avg_t = round(sum(all_t) / len(all_t), 1)
-        rain = round(min((sum(all_p) / 5 if all_p else 60) / 150, 1.0), 2)
-
+    month_num = _parse_month(month)
+    if month_num is None:
         return {
-            "avg_temp_c": avg_t,
-            "season": season,
-            "rain_prob": rain,
-            "source": f"Open-Meteo ({resolved}, {month_lower.title()})",
+            "destination": destination,
+            "resolved": destination,
+            "month": month,
+            "season": "spring",
+            "verified": False,
+            "source": "fallback (bad month)",
         }
-    except Exception as e:
-        print(f"Weather error ({e}) — using season fallback")
+
+    geo = _geocode(destination)
+    nh_season = _NH_SEASON[month_num]
+
+    if geo is None:
+        # Geocoder failed or destination not found → return NH season unverified.
         return {
-            "avg_temp_c": 20,
-            "season": season,
-            "rain_prob": 0.30,
-            "source": "fallback",
+            "destination": destination,
+            "resolved": destination,
+            "month": month,
+            "season": nh_season,
+            "verified": False,
+            "source": "fallback (geocoder unavailable or unknown place)",
         }
+
+    # Season by climate zone:
+    #   - Tropics (|lat| <= 23.5°): always "summer" — no real winter/spring/autumn.
+    #   - Southern Hemisphere (lat < -23.5°): flip the NH season.
+    #   - Northern Hemisphere (lat >  23.5°): use the NH season directly.
+    lat = geo.get("latitude", 0.0)
+    if -23.5 <= lat <= 23.5:
+        season = "summer"
+    elif lat < 0:
+        season = _FLIP[nh_season]
+    else:
+        season = nh_season
+
+    return {
+        "destination": destination,
+        "resolved": f"{geo.get('name', destination)}, {geo.get('country', '')}".strip(", "),
+        "month": month,
+        "season": season,
+        "verified": True,
+        "source": "open-meteo geocoding",
+    }
 
 
 if __name__ == "__main__":
