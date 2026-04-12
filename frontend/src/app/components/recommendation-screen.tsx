@@ -511,6 +511,11 @@ export function RecommendationScreen({
             <div className="mt-2 space-y-1 text-sm text-neutral-600">
               {/* Type */}
               <p className="capitalize">
+                <span className="text-neutral-400">Item ID:</span> {detailItem.itemId}
+              </p>
+
+              {/* Type */}
+              <p className="capitalize">
                 <span className="text-neutral-400">Type:</span> {detailItem.type}
               </p>
 
