@@ -44,6 +44,7 @@ type OutfitItem = {
   pattern?: string;
   stockStatus?: string;
   occasion?: string;
+  season?: string;
 };
 
 type Outfit = {
@@ -69,7 +70,7 @@ type TripGroup = {
   error: string | null;
 };
 
-function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number): Outfit[] {
+function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number, season?: string): Outfit[] {
   const getImageUrl = (articleId: string) =>
     `${IMAGE_SERVICE_URL}/images/${articleId}`;
   return apiOutfits.map((o, i) => ({
@@ -87,6 +88,7 @@ function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number): Outfit[] {
         pattern: o.top_pattern,
         stockStatus: o.top_stock_status,
         occasion: o.top_occasion,
+        season: season,
       },
       {
         id: `b${groupIdx}-${i}`,
@@ -98,6 +100,7 @@ function mapApiOutfits(apiOutfits: ApiOutfit[], groupIdx: number): Outfit[] {
         pattern: o.bottom_pattern,
         stockStatus: o.bottom_stock_status,
         occasion: o.bottom_occasion,
+        season: season,
       },
     ],
   }));
@@ -205,7 +208,7 @@ export function RecommendationScreen({
         });
         if (!resp.ok) throw new Error(`Service returned ${resp.status}`);
         const data = await resp.json();
-        const outfits = mapApiOutfits(data.outfits || [], idx);
+        const outfits = mapApiOutfits(data.outfits || [], idx, r.season);
         setGroups(prev => prev.map((g, i) =>
           i === idx ? { ...g, outfits, loading: false } : g
         ));
@@ -530,6 +533,13 @@ export function RecommendationScreen({
               {detailItem.occasion && (
                 <p className="capitalize">
                   <span className="text-neutral-400">Best for:</span> {detailItem.occasion}
+                </p>
+              )}
+
+              {/* Season */}
+              {detailItem.season && (
+                <p className="capitalize">
+                  <span className="text-neutral-400">Season:</span> {detailItem.season}
                 </p>
               )}
 
