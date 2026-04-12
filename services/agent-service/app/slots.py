@@ -82,12 +82,8 @@ SLOT_DEFAULTS: dict[str, Any] = {
 
 # Known vocabulary for normalisation / validation
 KNOWN_OCCASIONS = ["Casual", "Formal", "Sport", "Party"]
-KNOWN_COLORS = [
-    "Black", "White", "Grey", "Dark Blue", "Light Blue", "Blue",
-    "Red", "Dark Red", "Pink", "Light Pink", "Green", "Dark Green",
-    "Yellow", "Orange", "Dark Orange", "Purple", "Beige", "Brown",
-    "Gold", "Silver", "Bronze/Copper", "Khaki Green",
-]
+# User-facing palette. Imported from colors.py so backend/frontend stay in sync.
+from .colors import PALETTE as KNOWN_COLORS  # noqa: E402
 KNOWN_DESTINATIONS = [
     "Tokyo", "Seoul", "Bangkok", "Singapore", "Bali",
     "Sydney", "London", "Paris", "Rome", "Barcelona",

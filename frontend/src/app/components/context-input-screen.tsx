@@ -23,18 +23,28 @@ const destinations = [
 const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const categories = ['Ladieswear', 'Menswear'];
 const outfitCounts = [1, 2, 3, 4, 5];
+// Palette aligned with backend `app/colors.py` PALETTE. Each of these maps
+// to multiple KG colour variants on the server side, so users pick a simple
+// name and the query still matches every shade/tone variant in the catalogue.
 const colorMap: Record<string, string> = {
-  'Black': '#000000', 'White': '#FFFFFF', 'Grey': '#808080',
-  'Dark Blue': '#003366', 'Light Blue': '#87CEEB', 'Blue': '#0066CC',
-  'Red': '#DC143C', 'Dark Red': '#8B0000', 'Pink': '#FFB6C1',
-  'Light Pink': '#FFE4E1', 'Green': '#228B22', 'Dark Green': '#006400',
-  'Yellow': '#FFD700', 'Orange': '#FF8C00', 'Dark Orange': '#FF4500',
-  'Purple': '#9370DB', 'Beige': '#F5F5DC', 'Brown': '#8B4513',
-  'Gold': '#FFD700', 'Silver': '#C0C0C0', 'Bronze/Copper': '#CD7F32',
-  'Khaki Green': '#6B8E23'
+  'Black':     '#000000',
+  'White':     '#FFFFFF',
+  'Grey':      '#808080',
+  'Blue':      '#0066CC',
+  'Red':       '#DC143C',
+  'Pink':      '#FFB6C1',
+  'Green':     '#228B22',
+  'Yellow':    '#FFD700',
+  'Orange':    '#FF8C00',
+  'Purple':    '#9370DB',
+  'Beige':     '#F5F5DC',
+  'Brown':     '#8B4513',
+  'Turquoise': '#40E0D0',
+  'Gold':      '#DAA520',
+  'Silver':    '#C0C0C0',
 };
 const colorOptions = Object.keys(colorMap);
-const lightColors = ['White', 'Light Blue', 'Light Pink', 'Beige', 'Yellow', 'Silver'];
+const lightColors = ['White', 'Beige', 'Yellow', 'Silver'];
 
 // ── Chat types ────────────────────────────────────────────────────────────────
 type ChatMessage = { role: 'agent' | 'user'; text: string };
@@ -508,9 +518,9 @@ function mapBudget(budget: string): number {
 
 function parseColours(raw: string): string[] {
   if (!raw || raw === 'none' || raw === 'null') return [];
-  const known = ['Black','White','Grey','Dark Blue','Light Blue','Blue','Red','Dark Red',
-    'Pink','Light Pink','Green','Dark Green','Yellow','Orange','Dark Orange',
-    'Purple','Beige','Brown','Gold','Silver','Bronze/Copper','Khaki Green'];
+  // Must match backend PALETTE in services/agent-service/app/colors.py.
+  const known = ['Black','White','Grey','Blue','Red','Pink','Green','Yellow',
+    'Orange','Purple','Beige','Brown','Turquoise','Gold','Silver'];
   return known.filter(c => raw.toLowerCase().includes(c.toLowerCase()));
 }
 

@@ -18,6 +18,7 @@ from typing import Any
 import httpx
 
 from .slots import SlotState, SLOT_DEFAULTS
+from .colors import expand_to_kg
 
 WEATHER_SERVICE_URL = os.environ.get("WEATHER_SERVICE_URL", "http://weather-service:8000")
 MAX_KG_GROUPS = 20
@@ -91,8 +92,11 @@ def build_results(state: SlotState) -> dict:
                     "category":         _gender_to_category(g),
                     "num_outfits":      num_outfits,
                     "max_price":        max_price,
-                    "preferred_colors": preferred_colors,
-                    "avoid_colors":     avoid_colors,
+                    # Expand palette → KG colour IDs so the Neo4j query
+                    # matches every real variant (e.g. "Blue" → Blue,
+                    # Light Blue, Dark Blue, Other Blue).
+                    "preferred_colors": expand_to_kg(preferred_colors),
+                    "avoid_colors":     expand_to_kg(avoid_colors),
                     "season":           c["season"],
                     # display-only fields:
                     "gender":           g,

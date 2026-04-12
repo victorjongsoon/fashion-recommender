@@ -55,11 +55,19 @@ class ExtractionResult(BaseModel):
     )
     preferred_colors: Optional[list[str]] = Field(
         default=None,
-        description=f"Colours the user likes, from {KNOWN_COLORS}. [] if none stated.",
+        description=(
+            f"Colours the user likes, ONLY from this palette: {KNOWN_COLORS}. "
+            "Map synonyms to the closest palette entry (e.g. 'navy'→'Blue', "
+            "'cream'→'Beige', 'maroon'→'Red', 'lavender'→'Purple', "
+            "'khaki'→'Green', 'turquoise'→'Turquoise'). [] if none stated."
+        ),
     )
     avoid_colors: Optional[list[str]] = Field(
         default=None,
-        description=f"Colours the user dislikes, from {KNOWN_COLORS}. [] if none stated.",
+        description=(
+            f"Colours the user dislikes, ONLY from this palette: {KNOWN_COLORS}. "
+            "Same synonym rules as preferred_colors. [] if none stated."
+        ),
     )
     refused_target: bool = Field(
         default=False,
