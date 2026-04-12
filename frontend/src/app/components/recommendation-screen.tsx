@@ -400,49 +400,72 @@ export function RecommendationScreen({
                   No outfits found for this trip. Try adjusting budget or colour preferences.
                 </div>
               )}
-
               {/* Outfit cards */}
               {!group.loading && group.outfits.length > 0 && (
                 <div className="grid gap-4 md:grid-cols-3">
-                  {group.outfits.map(outfit => (
-                    <Card key={outfit.id} className="p-4 rounded-2xl border border-neutral-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-sm">{outfit.name}</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {outfit.items.map(item => (
-                          <div key={item.id} className="space-y-1"
-                            onClick={() => setDetailItem(item)}>
-                            <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                              {!imageErrors.has(item.id) ? (
-                                <img
-                                  src={item.image}
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                  onError={() => handleImageError(item.id)}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs text-center p-2">
-                                  {item.name}
-                                </div>
+                  {group.outfits.map(outfit => {
+                    const totalPrice = outfit.items.reduce(
+                      (sum, item) => sum + (item.price || 0),
+                      0
+                    );
+
+                    return (
+                      <Card key={outfit.id} className="p-4 rounded-2xl border border-neutral-200">
+                        
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-sm">{outfit.name}</h4>
+                          <div className="text-sm font-medium text-neutral-700">
+                            Total: ${totalPrice.toFixed(2)}
+                          </div>
+                        </div>
+
+                        {/* Items */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {outfit.items.map(item => (
+                            <div
+                              key={item.id}
+                              className="space-y-1"
+                              onClick={() => setDetailItem(item)}
+                            >
+                              <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                                {!imageErrors.has(item.id) ? (
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                    onError={() => handleImageError(item.id)}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs text-center p-2">
+                                    {item.name}
+                                  </div>
+                                )}
+                              </div>
+
+                              <p className="text-xs font-medium capitalize truncate">
+                                {item.name}
+                              </p>
+
+                              {item.price && (
+                                <p className="text-xs text-neutral-400">
+                                  ${item.price.toFixed(2)}
+                                </p>
                               )}
                             </div>
-                            <p className="text-xs font-medium capitalize truncate">{item.name}</p>
-                            {item.price && (
-                              <p className="text-xs text-neutral-400">${item.price.toFixed(2)}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        onClick={() => openTryOn(outfit)}
-                        variant="outline"
-                        className="w-full rounded-full mt-3 text-xs"
-                      >
-                        Try this outfit on
-                      </Button>
-                    </Card>
-                  ))}
+                          ))}
+                        </div>
+
+                        <Button
+                          onClick={() => openTryOn(outfit)}
+                          variant="outline"
+                          className="w-full rounded-full mt-3 text-xs"
+                        >
+                          Try this outfit on
+                        </Button>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </div>
