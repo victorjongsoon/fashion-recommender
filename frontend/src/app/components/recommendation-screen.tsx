@@ -408,9 +408,6 @@ export function RecommendationScreen({
                     <Card key={outfit.id} className="p-4 rounded-2xl border border-neutral-200">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium text-sm">{outfit.name}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          {outfit.fitnessScore.toFixed(2)}
-                        </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         {outfit.items.map(item => (
@@ -482,9 +479,35 @@ export function RecommendationScreen({
             {detailItem.price && (
               <p className="text-neutral-500 text-sm">${detailItem.price.toFixed(2)}</p>
             )}
-            {detailItem.pattern && (
-              <p className="text-neutral-500 text-sm capitalize">{detailItem.pattern}</p>
-            )}
+
+            <div className="mt-2 space-y-1 text-sm text-neutral-600">
+              {/* Type */}
+              <p className="capitalize">
+                <span className="text-neutral-400">Type:</span> {detailItem.type}
+              </p>
+
+              {/* Pattern */}
+              {detailItem.pattern && (
+                <p className="capitalize">
+                  <span className="text-neutral-400">Pattern:</span> {detailItem.pattern}
+                </p>
+              )}
+
+              {/* Occasion */}
+              {detailItem.occasion && (
+                <p className="capitalize">
+                  <span className="text-neutral-400">Best for:</span> {detailItem.occasion}
+                </p>
+              )}
+
+              {/* Stock */}
+              {detailItem.stockStatus && (
+                <p className="capitalize">
+                  <span className="text-neutral-400">Availability:</span> {detailItem.stockStatus}
+                </p>
+              )}
+            </div>
+
             <Button onClick={() => setDetailItem(null)}
               className="mt-4 w-full rounded-full" variant="outline">
               Close
