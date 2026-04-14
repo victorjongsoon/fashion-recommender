@@ -471,9 +471,6 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
-              <p className="text-center text-xs text-neutral-400 mt-2">
-                Press Enter to send · Say "refuse" to skip any question
-              </p>
             </div>
           </div>
         )}

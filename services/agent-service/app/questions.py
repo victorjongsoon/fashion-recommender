@@ -16,8 +16,7 @@ OPENING_QUESTION = (
     "  • Number of outfits (1–5) and budget per outfit (SGD)\n"
     "  • Colours you love or want to avoid (optional)\n\n"
     "For example: \"Casual trip to Tokyo in June, menswear, 3 outfits under "
-    "$200, like blue and black, avoid pink.\"\n"
-    "You can also skip anything you're unsure about."
+    "$200, like blue and black, avoid pink.\""
 )
 
 QUESTIONS: dict[str, str] = {
