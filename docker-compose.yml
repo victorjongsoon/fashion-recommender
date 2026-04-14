@@ -56,30 +56,14 @@ services:
     volumes:
       - ./data/neo4j_data:/data
 
-  # ── Added by Joshua ────────────────────────────────────────────────────────
-
-  ollama:
-    image: ollama/ollama
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_models:/root/.ollama
-    restart: unless-stopped
-
   agent-service:
     build:
       context: ./services/agent-service
     container_name: agent-service
     ports:
       - "8004:8000"
-    depends_on:
-      - ollama
     environment:
-      - OLLAMA_HOST=http://ollama:11434
       - WEATHER_SERVICE_URL=http://weather-service:8000
+      - OPENAI_API_KEY=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
+      - OPENAI_MODEL=gpt-4o-mini
     restart: unless-stopped
-
-volumes:
-  ollama_models:
-    name: fashion-recommender-ollama-models

@@ -14,6 +14,7 @@ The result is merged into the session's SlotState.
 """
 from __future__ import annotations
 
+import traceback
 from typing import Optional
 from pydantic import BaseModel, Field, ValidationError
 
@@ -119,12 +120,12 @@ def extract(state: SlotState, target_slot: Optional[str],
             "target_slot": target_slot or "unknown",
             "message": user_message,
         })
-        # Some backends return a dict instead of the pydantic model.
         if isinstance(result, dict):
             result = ExtractionResult(**result)
         return result
     except (ValidationError, Exception) as e:
         print(f"[agent-service] extractor error: {e}")
+        traceback.print_exc()
         return ExtractionResult()
 
 

@@ -1,46 +1,39 @@
 """
-LangChain + Ollama LLM wrapper.
+LLM wrapper — OpenAI chat completions.
 
-Exposes a single `get_llm()` returning a ChatOllama instance configured from
-environment variables, plus a best-effort startup pull over Ollama's HTTP API.
+Required env:
+  OPENAI_API_KEY — from https://platform.openai.com/settings/.../api-keys
+Optional env:
+  OPENAI_MODEL   — default "gpt-4o-mini"
 """
 from __future__ import annotations
 
 import os
 from functools import lru_cache
 
-import httpx
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://ollama:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:4b")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini").strip()
+
+MODEL_ID = OPENAI_MODEL
 
 
 @lru_cache(maxsize=1)
-def get_llm() -> ChatOllama:
-    return ChatOllama(
-        model=OLLAMA_MODEL,
-        base_url=OLLAMA_HOST,
+def get_llm() -> ChatOpenAI:
+    if not OPENAI_API_KEY:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not set. Put it in the repo-root .env file "
+            "(copy .env.example) or export it in your shell."
+        )
+    return ChatOpenAI(
+        model=OPENAI_MODEL,
+        api_key=OPENAI_API_KEY,
         temperature=0.0,
+        timeout=60,
     )
 
 
 def pull_model_best_effort() -> None:
-    """Best-effort pull so the first request doesn't stall on model download."""
-    try:
-        with httpx.Client(timeout=None) as c:
-            tags = c.get(f"{OLLAMA_HOST}/api/tags", timeout=5.0).json()
-            existing = [m.get("name", "") for m in (tags.get("models") or [])]
-            if any(OLLAMA_MODEL in m for m in existing):
-                print(f"[agent-service] {OLLAMA_MODEL} already available.")
-                return
-            print(f"[agent-service] pulling {OLLAMA_MODEL} …")
-            # Stream the pull; discard progress output, just wait for completion.
-            with c.stream("POST", f"{OLLAMA_HOST}/api/pull",
-                          json={"name": OLLAMA_MODEL}) as r:
-                for _ in r.iter_lines():
-                    pass
-            print(f"[agent-service] {OLLAMA_MODEL} ready.")
-    except Exception as e:
-        # Best-effort: don't crash the service if Ollama isn't ready yet.
-        print(f"[agent-service] model pull skipped: {e}")
+    """No-op for OpenAI — hosted, nothing to pull."""
+    print(f"[agent-service] using OpenAI model {OPENAI_MODEL}")

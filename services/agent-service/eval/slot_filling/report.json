@@ -1,0 +1,98 @@
+{
+  "n_cases": 48,
+  "per_slot_accuracy": {
+    "occasion": 1.0,
+    "destination": 1.0,
+    "month": 1.0,
+    "gender": 1.0,
+    "num_outfits": 1.0,
+    "max_price": 1.0,
+    "preferred_colors": 0.9792,
+    "avoid_colors": 1.0
+  },
+  "per_slot_prf1": {
+    "occasion": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "destination": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "month": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "gender": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "num_outfits": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "max_price": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "preferred_colors": {
+      "precision": 0.9792,
+      "recall": 1.0,
+      "f1": 0.9895
+    },
+    "avoid_colors": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "joint_exact_match": 0.9792,
+  "list_slot_jaccard": {
+    "avoid_colors": 1.0,
+    "preferred_colors": 0.9896
+  },
+  "refusal_accuracy": null,
+  "avg_turns": 1.1,
+  "per_category_accuracy": {
+    "full-oneshot": 1.0,
+    "occasion-mapping": 1.0,
+    "gender-phrasing": 1.0,
+    "destination-alias": 1.0,
+    "budget-phrasing": 1.0,
+    "colour-synonym": 0.8,
+    "partial-followup": 1.0,
+    "out-of-palette": 1.0
+  },
+  "category_counts": {
+    "full-oneshot": 10,
+    "occasion-mapping": 10,
+    "gender-phrasing": 5,
+    "destination-alias": 5,
+    "budget-phrasing": 5,
+    "colour-synonym": 5,
+    "partial-followup": 5,
+    "out-of-palette": 3
+  },
+  "occasion_confusion": {
+    "Casual": {
+      "Casual": 17
+    },
+    "Formal": {
+      "Formal": 11
+    },
+    "Party": {
+      "Party": 11
+    },
+    "Sport": {
+      "Sport": 9
+    }
+  },
+  "model_id": "gpt-4o-mini",
+  "dataset_hash": "d7ef5f10"
+}

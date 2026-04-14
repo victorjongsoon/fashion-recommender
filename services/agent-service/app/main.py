@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .extractor import extract, merge
-from .llm import pull_model_best_effort, OLLAMA_MODEL
+from .llm import pull_model_best_effort, MODEL_ID
 from .questions import WELCOME, OPENING_QUESTION, question_for
 from .results import build_results
 from .sessions import Session, SessionStore
@@ -38,7 +38,7 @@ def _startup() -> None:
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "agent-service", "model": OLLAMA_MODEL}
+    return {"status": "ok", "service": "agent-service", "model": MODEL_ID}
 
 
 @app.get("/api/start")

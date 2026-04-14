@@ -13,8 +13,10 @@ Ground-truth uses the literal string "__refused__" for slots the user refused.
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import string
+from pathlib import Path
 from typing import Any
 
 LIST_SLOTS = {"preferred_colors", "avoid_colors"}
@@ -178,3 +180,63 @@ def compute(cases: list[dict]) -> dict:
                              if refusal_total else None),
         "avg_turns": round(total_turns / n, 2) if n else 0.0,
     }
+
+
+# ── Extended metrics (per-category + occasion confusion) ────────────────────
+def _case_all_correct(c: dict) -> bool:
+    gt = c["ground_truth"]
+    pred = c["predicted"]
+    for slot in ALL_SLOTS:
+        if slot not in gt:
+            continue
+        p = pred.get(slot) or {}
+        if not slot_matches(slot, p.get("value"), bool(p.get("refused")), gt[slot]):
+            return False
+    return True
+
+
+def compute_extended(cases: list[dict]) -> dict:
+    """Wrap compute() and add per-category accuracy, occasion confusion matrix,
+    and category counts. Each case may carry an optional "category" key."""
+    base = compute(cases)
+
+    cat_total: dict[str, int] = {}
+    cat_correct: dict[str, int] = {}
+    confusion: dict[str, dict[str, int]] = {}
+
+    for c in cases:
+        cat = c.get("category", "uncategorised")
+        cat_total[cat] = cat_total.get(cat, 0) + 1
+        if _case_all_correct(c):
+            cat_correct[cat] = cat_correct.get(cat, 0) + 1
+
+        gt_occ = c["ground_truth"].get("occasion")
+        pred_occ_raw = (c["predicted"].get("occasion") or {})
+        if _is_refused(gt_occ):
+            gt_label = "__refused__"
+        else:
+            gt_label = str(gt_occ) if gt_occ is not None else "None"
+        if pred_occ_raw.get("refused"):
+            pred_label = "__refused__"
+        elif pred_occ_raw.get("filled"):
+            pred_label = str(pred_occ_raw.get("value"))
+        else:
+            pred_label = "None"
+        confusion.setdefault(gt_label, {})
+        confusion[gt_label][pred_label] = confusion[gt_label].get(pred_label, 0) + 1
+
+    per_category_accuracy = {
+        cat: round(cat_correct.get(cat, 0) / cat_total[cat], 4)
+        for cat in cat_total
+    }
+
+    base["per_category_accuracy"] = per_category_accuracy
+    base["category_counts"] = cat_total
+    base["occasion_confusion"] = confusion
+    return base
+
+
+def dataset_hash(path: str | Path) -> str:
+    """First 8 hex chars of SHA1 of the dataset file bytes."""
+    data = Path(path).read_bytes()
+    return hashlib.sha1(data).hexdigest()[:8]
