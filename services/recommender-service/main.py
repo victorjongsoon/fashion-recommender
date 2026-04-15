@@ -21,7 +21,49 @@ app.add_middleware(
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 load_lift_tables(DATA_DIR)
 
+RECOMMENDATION_STRATEGY = os.environ.get("RECOMMENDATION_STRATEGY", "kg_ga")
+RANDOM_SEED = 42
+print(f"Running RECOMMENDATION_STRATEGY = {RECOMMENDATION_STRATEGY}")
+
 DEFAULT_MAX_PRICE = 9999
+
+
+def run_kg_random(candidate_df, num_outfits):
+    if candidate_df.empty:
+        return []
+    shuffled = candidate_df.sample(frac=1, random_state=RANDOM_SEED)
+    used_tops, used_bottoms, results = set(), set(), []
+    for _, row in shuffled.iterrows():
+        if len(results) >= num_outfits:
+            break
+        top, bot = row.get("Top_Article"), row.get("Bottom_Article")
+        if top in used_tops or bot in used_bottoms:
+            continue
+        used_tops.add(top)
+        used_bottoms.add(bot)
+        result = row.to_dict()
+        result["fitness_score"] = 0.0
+        results.append(result)
+    return results
+
+
+def run_kg_lift(candidate_df, num_outfits):
+    if candidate_df.empty:
+        return []
+    sorted_df = candidate_df.sort_values("Lift_Score", ascending=False)
+    used_tops, used_bottoms, results = set(), set(), []
+    for _, row in sorted_df.iterrows():
+        if len(results) >= num_outfits:
+            break
+        top, bot = row.get("Top_Article"), row.get("Bottom_Article")
+        if top in used_tops or bot in used_bottoms:
+            continue
+        used_tops.add(top)
+        used_bottoms.add(bot)
+        result = row.to_dict()
+        result["fitness_score"] = row["Lift_Score"]
+        results.append(result)
+    return results
 
 
 class RecommendRequest(BaseModel):
@@ -79,12 +121,19 @@ def recommend(request: RecommendRequest):
     if candidate_df.empty:
         return RecommendResponse(outfits=[])
 
-    # Step 3: Run GA
-    ga_results = run_ga(candidate_df, num_outfits=request.num_outfits, max_price=max_price)
+    # Step 3: Run selected strategy
+    if RECOMMENDATION_STRATEGY == "kg_ga":
+        results = run_ga(candidate_df, num_outfits=request.num_outfits, max_price=max_price)
+    elif RECOMMENDATION_STRATEGY == "kg_lift":
+        results = run_kg_lift(candidate_df, num_outfits=request.num_outfits)
+    elif RECOMMENDATION_STRATEGY == "kg_random":
+        results = run_kg_random(candidate_df, num_outfits=request.num_outfits)
+    else:
+        raise ValueError(f"Invalid RECOMMENDATION_STRATEGY: {RECOMMENDATION_STRATEGY}")
 
     # Step 4: Format response
     outfits = []
-    for result in ga_results:
+    for result in results:
         outfits.append(OutfitResponse(
             top_article_id=str(result.get("Top_Article", "")),
             bottom_article_id=str(result.get("Bottom_Article", "")),
