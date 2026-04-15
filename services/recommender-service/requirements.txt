@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-neo4j
-pandas
-numpy
-pydantic
-joblib
-pyarrow

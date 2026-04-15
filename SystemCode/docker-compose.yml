@@ -1,0 +1,72 @@
+name: fashion-recommender
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_AGENT_SERVICE_URL=http://agent-service:8004
+
+  image-service:
+    build:
+      context: ./services/image-service
+    environment:
+      IMAGES_DIR: /data/images
+    volumes:
+      - ./data/raw/images:/data/images:ro
+    ports:
+      - "8001:8000"
+
+  vton-service:
+    build: ./services/vton-services
+    ports:
+      - "8002:8000"
+    environment:
+      HF_TOKEN: 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
+
+  recommender-service:
+    build:
+      context: ./services/recommender-service
+    ports:
+      - "8003:8000"
+    environment:
+      NEO4J_URI: bolt://kg-service:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: password123
+      DATA_DIR: /data
+      RECOMMENDATION_STRATEGY: kg_ga   # kg_ga | kg_lift | kg_random
+    volumes:
+      - ./data:/data:ro
+      - ./services/recommender-service/kg:/app/kg:ro
+    depends_on:
+      - kg-service
+
+  weather-service:
+    build:
+      context: ./services/weather-service
+    ports:
+      - "8005:8000"
+
+  kg-service:
+    image: neo4j:latest
+    environment:
+      - NEO4J_AUTH=neo4j/password123
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ./data/neo4j_data:/data
+
+  agent-service:
+    build:
+      context: ./services/agent-service
+    container_name: agent-service
+    ports:
+      - "8004:8000"
+    environment:
+      - WEATHER_SERVICE_URL=http://weather-service:8000
+      - OPENAI_API_KEY=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
+      - OPENAI_MODEL=gpt-4o-mini
+    restart: unless-stopped
