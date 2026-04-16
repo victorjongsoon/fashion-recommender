@@ -20,6 +20,7 @@ URI = "bolt://localhost:7687"
 AUTH = ("neo4j", "password123")  # Default username and password for Neo4j
 driver = GraphDatabase.driver(URI, auth=AUTH)
 
+
 def load_edges(tx, rel_type, edges_subset):
     # Dynamically set the tail label
     if rel_type == 'best_matches_with':
@@ -38,6 +39,7 @@ def load_edges(tx, rel_type, edges_subset):
     tx.run(query, rows=records)
 
 start_time = time.time()
+
 
 with driver.session() as session:
     print("Pushing Knowledge Graph data...")
