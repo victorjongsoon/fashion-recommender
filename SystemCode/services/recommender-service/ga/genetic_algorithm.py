@@ -10,6 +10,7 @@ W3 = float(os.environ.get("GA_W3", "0.2"))   # type lift
 W4 = float(os.environ.get("GA_W4", "0.2"))   # dead stock bonus
 W5 = float(os.environ.get("GA_W5", "0.1"))   # price penalty
 W6 = float(os.environ.get("GA_W6", "0.15"))  # budget utilization bonus
+W7 = float(os.environ.get("GA_W7", "0.3"))   # preferred color match
 POPULATION_SIZE = int(os.environ.get("GA_POPULATION_SIZE", "50"))
 GENERATIONS = int(os.environ.get("GA_GENERATIONS", "100"))
 TOURNAMENT_SIZE = 3
@@ -71,12 +72,20 @@ def load_lift_tables(data_dir: str = "/data"):
     print(f"Loaded lift tables: color={len(_color_lift)}, pattern={len(_pattern_lift)}, type={len(_type_lift)}")
 
 
-def fitness(candidate: dict, max_price: float) -> float:
+def fitness(candidate: dict, max_price: float, preferred_colors: set = None) -> float:
     """Evaluate fitness of a single candidate (top-bottom pair)."""
     # Lift lookups (default 0.0 for missing pairs)
     color_score = _color_lift.get((candidate["Top_Color"], candidate["Bottom_Color"]), 0.0)
     pattern_score = _pattern_lift.get((candidate["Top_Pattern"], candidate["Bottom_Pattern"]), 0.0)
     type_score = _type_lift.get((candidate.get("Top_Type", ""), candidate.get("Bottom_Type", "")), 0.0)
+
+    # Preferred color match (soft): 0.0 / 0.5 / 1.0 based on how many of top/bottom match
+    if preferred_colors:
+        match_count = int(candidate.get("Top_Color") in preferred_colors) + \
+                      int(candidate.get("Bottom_Color") in preferred_colors)
+        pref_color_score = match_count / 2.0
+    else:
+        pref_color_score = 0.0
 
     # Dead stock bonus
     top_dead = candidate.get("Top_Stock_Status", "") == "Dead Stock"
@@ -104,6 +113,7 @@ def fitness(candidate: dict, max_price: float) -> float:
         + W4 * dead_bonus
         - W5 * price_pen
         + W6 * budget_util
+        + W7 * pref_color_score
     )
 
 
@@ -142,7 +152,7 @@ def _mutate(individual: dict, candidate_pool: list) -> dict:
     return mutant
 
 
-def run_ga(candidate_df: pd.DataFrame, num_outfits: int, max_price: float = 9999) -> list:
+def run_ga(candidate_df: pd.DataFrame, num_outfits: int, max_price: float = 9999, preferred_colors: list = None) -> list:
     """
     Run the genetic algorithm on the candidate DataFrame.
     Returns a list of dicts representing the top N diverse outfits.
@@ -150,8 +160,9 @@ def run_ga(candidate_df: pd.DataFrame, num_outfits: int, max_price: float = 9999
     if candidate_df.empty:
         return []
 
+    pref_set = set(preferred_colors) if preferred_colors else None
     candidate_pool = candidate_df.to_dict("records")
-    print(f"GA: {len(candidate_pool)} candidate pairs, requesting {num_outfits} outfits, max_price={max_price}")
+    print(f"GA: {len(candidate_pool)} candidate pairs, requesting {num_outfits} outfits, max_price={max_price}, preferred_colors={preferred_colors}")
 
     # Use larger population to maintain diversity for multi-outfit requests
     pop_size = max(POPULATION_SIZE, num_outfits * 30)
@@ -163,7 +174,7 @@ def run_ga(candidate_df: pd.DataFrame, num_outfits: int, max_price: float = 9999
 
     # Evolution loop
     for gen in range(GENERATIONS):
-        fitnesses = [fitness(ind, max_price) for ind in population]
+        fitnesses = [fitness(ind, max_price, pref_set) for ind in population]
 
         new_population = []
 
@@ -198,7 +209,7 @@ def run_ga(candidate_df: pd.DataFrame, num_outfits: int, max_price: float = 9999
     for ind in all_candidates:
         key = (ind.get("Top_Article"), ind.get("Bottom_Article"))
         if key not in all_scored:
-            score = fitness(ind, max_price)
+            score = fitness(ind, max_price, pref_set)
             all_scored[key] = (ind, score)
 
     # Weighted random diverse selection using softmax probabilities
