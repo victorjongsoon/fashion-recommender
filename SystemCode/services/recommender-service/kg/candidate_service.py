@@ -27,17 +27,16 @@ else:
     _article_type_map = {}
     print(f"WARNING: articles joblib not found at {_articles_joblib_path}")
 
-def query_neo4j(category, max_price, occasion=None, season=None, top_limit=100):
+def query_neo4j(category, occasion=None, season=None, top_limit=100):
     """Helper function to query Neo4j based on the requirements."""
 
     # Hard Constraints (Always applied)
-    # Note: max_price filters individual top price, not total outfit price.
-    # The GA handles total outfit price via its price penalty term.
     # Category filter: match "Top" subcategory only (e.g., "Menswear" -> "Menswear Top")
     # to avoid matching bottom items as tops and wasting LIMIT slots.
+    # Note: price is no longer a hard KG filter. The GA handles total outfit
+    # price softly via its price penalty + budget utilization terms.
     query_parts = [
         "MATCH (top:Item)-[:in_category]->(cat:Attribute) WHERE cat.id = ($category + ' Top')",
-        "MATCH (top)-[:has_price]->(price:Attribute) WHERE toFloat(price.id) <= $max_price"
     ]
 
     # Soft Constraints (Applied if they aren't None)
@@ -87,7 +86,6 @@ def query_neo4j(category, max_price, occasion=None, season=None, top_limit=100):
         results = session.run(
             final_query,
             category=category,
-            max_price=float(max_price),
             occasion=occasion,
             season=season,
             top_limit=top_limit
@@ -101,29 +99,30 @@ def query_neo4j(category, max_price, occasion=None, season=None, top_limit=100):
     candidate_df = candidate_df.groupby("Top_Article").head(5).reset_index(drop=True)
     return candidate_df
 
-def get_ga_candidates(category, avoid_colors, max_price, occasion, season=None, top_limit=100):
+def get_ga_candidates(category, avoid_colors, occasion, season=None, top_limit=100):
     """
     Takes requirements, queries Neo4j and outputs candidate pool.
-    Post-filters avoid_colors on both tops and bottoms. preferred_colors is handled
-    downstream as a soft term in the GA fitness, not as a hard KG filter.
+    Post-filters avoid_colors on both tops and bottoms. preferred_colors and
+    price are handled downstream as soft terms in the GA fitness, not as hard
+    KG filters.
     """
-    print(f"Received request: {category}, avoid={avoid_colors}, Under ${max_price}, {occasion}, {season}")
+    print(f"Received request: {category}, avoid={avoid_colors}, {occasion}, {season}")
 
     # Level 1 : Try strict matching with all constraints
     print("\nTrying strict matching with all constraints...")
-    df = query_neo4j(category, max_price, occasion, season, top_limit)
+    df = query_neo4j(category, occasion, season, top_limit)
     print(f"Found {df['Top_Article'].nunique()} unique tops with strict constraints")
 
     # Only relax if we have very few candidates (< 10 unique tops)
     if df["Top_Article"].nunique() < 10:
         # Level 2 : Relax soft constraints one by one
         print(f"Only found {df['Top_Article'].nunique()} unique tops. Dropping 'Season' constraint...")
-        df = query_neo4j(category, max_price, occasion=occasion, season=None, top_limit=top_limit)
+        df = query_neo4j(category, occasion=occasion, season=None, top_limit=top_limit)
 
     if df["Top_Article"].nunique() < 10:
         # Level 3 : Relax all soft constraints
         print(f"Still only found {df['Top_Article'].nunique()} unique tops. Dropping 'Occasion' constraints...")
-        df = query_neo4j(category, max_price, occasion=None, season=None, top_limit=top_limit)
+        df = query_neo4j(category, occasion=None, season=None, top_limit=top_limit)
 
     # Post-filter: exclude rows where Top_Color OR Bottom_Color is in avoid_colors
     if avoid_colors and not df.empty:
@@ -152,7 +151,6 @@ if __name__ == "__main__":
     candidates = get_ga_candidates(
         category="Ladieswear Top",
         avoid_colors=[],
-        max_price=1000,
         occasion="Party",
         season="Summer",
         top_limit=100

@@ -107,14 +107,14 @@ def health():
 def recommend(request: RecommendRequest):
     max_price = request.max_price
 
-    # Step 1: Get candidates from KG — now passing season!
-    # preferred_colors is no longer a hard KG filter; it's a soft GA term.
+    # Step 1: Get candidates from KG.
+    # preferred_colors and max_price are no longer hard KG filters — GA handles
+    # both softly (colour match bonus, total-price penalty, budget utilization).
     candidate_df = get_ga_candidates(
         category=request.category,
         avoid_colors=request.avoid_colors,
-        max_price=max_price,
         occasion=request.occasion,
-        season=request.season,          # ← now wired through
+        season=request.season,
     )
 
     # Step 2: Handle empty candidate pool
