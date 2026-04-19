@@ -108,9 +108,9 @@ def recommend(request: RecommendRequest):
     max_price = request.max_price
 
     # Step 1: Get candidates from KG — now passing season!
+    # preferred_colors is no longer a hard KG filter; it's a soft GA term.
     candidate_df = get_ga_candidates(
         category=request.category,
-        preferred_colors=request.preferred_colors,
         avoid_colors=request.avoid_colors,
         max_price=max_price,
         occasion=request.occasion,
@@ -123,7 +123,12 @@ def recommend(request: RecommendRequest):
 
     # Step 3: Run selected strategy
     if RECOMMENDATION_STRATEGY == "kg_ga":
-        results = run_ga(candidate_df, num_outfits=request.num_outfits, max_price=max_price)
+        results = run_ga(
+            candidate_df,
+            num_outfits=request.num_outfits,
+            max_price=max_price,
+            preferred_colors=request.preferred_colors,
+        )
     elif RECOMMENDATION_STRATEGY == "kg_lift":
         results = run_kg_lift(candidate_df, num_outfits=request.num_outfits)
     elif RECOMMENDATION_STRATEGY == "kg_random":
