@@ -51,7 +51,7 @@ type ChatMessage = { role: 'agent' | 'user'; text: string };
 
 export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreenProps) {
   // Tab
-  const [activeTab, setActiveTab] = useState<'form' | 'chat'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'chat'>('chat');
 
   // ── Form state (original) ──────────────────────────────────────────────────
   const [formData, setFormData] = useState<FormData>(initialData);
@@ -189,17 +189,6 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
         {/* ── Tab toggle ── */}
         <div className="flex gap-1 mb-8 bg-neutral-100 p-1 rounded-xl">
           <button
-            onClick={() => setActiveTab('form')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'form'
-                ? 'bg-white shadow text-black'
-                : 'text-neutral-500 hover:text-neutral-700'
-            }`}
-          >
-            <ClipboardList className="w-4 h-4" />
-            Fill Form
-          </button>
-          <button
             onClick={() => setActiveTab('chat')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'chat'
@@ -209,6 +198,17 @@ export function ContextInputScreen({ initialData, onSubmit }: ContextInputScreen
           >
             <MessageCircle className="w-4 h-4" />
             Chat with Advisor
+          </button>
+          <button
+            onClick={() => setActiveTab('form')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'form'
+                ? 'bg-white shadow text-black'
+                : 'text-neutral-500 hover:text-neutral-700'
+            }`}
+          >
+            <ClipboardList className="w-4 h-4" />
+            Fill Form
           </button>
         </div>
 
