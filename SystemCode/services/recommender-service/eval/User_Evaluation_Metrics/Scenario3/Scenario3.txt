@@ -1,0 +1,7 @@
+Occasion: Party
+Location: Tokyo
+Month: April (Spring)
+Gender: Ladieswear
+Budget: $120
+Preferred colors: Red, Pink
+Avoid: Green

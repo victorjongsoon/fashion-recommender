@@ -1,0 +1,7 @@
+Occasion: Casual
+Location: Singapore
+Month: June (Summer)
+Gender: Menswear
+Budget: $100
+Preferred colors: none
+Avoid: none

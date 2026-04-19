@@ -1,0 +1,7 @@
+Occasion: Sport
+Location: New York
+Month: January (Winter)
+Gender: Menswear
+Budget: $150
+Preferred colors: none
+Avoid: none

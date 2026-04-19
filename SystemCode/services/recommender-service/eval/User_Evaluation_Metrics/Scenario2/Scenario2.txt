@@ -1,0 +1,7 @@
+Occasion: Formal
+Location: London
+Month: December (Winter)
+Gender: Menswear
+Budget: $150
+Preferred colors: Black, Grey
+Avoid: none
