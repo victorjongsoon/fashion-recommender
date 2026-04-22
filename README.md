@@ -51,13 +51,13 @@ Note: It is not mandatory for every project member to appear in the video presen
 - Docker & Docker Compose
 - Python 3.10+
 - Node.js 18+ (for the frontend)
-- A pre-built Neo4j database dump (`neo4j_data.zip`) — <!-- TODO: add download link -->
+- A pre-built Neo4j database dump (`neo4j_data.zip`) — [download from Google Drive](https://drive.google.com/file/d/1zWZ-JxVkoXUAvytiSjidgpplUfT_N39l/view?usp=sharing) (the `data/` directory is git-ignored due to its size, so this must be downloaded separately)
 
 ### [ 1 ] Import the Pre-Built Knowledge Graph
 
-1. Download `neo4j_data.zip`.
-2. In the repository root, navigate to the `data/` folder (create it if it does not exist).
-3. Extract the archive so the path is exactly: `fashion-recommender/data/neo4j_data/`
+1. Download `neo4j_data.zip` from the [Google Drive link](https://drive.google.com/file/d/1zWZ-JxVkoXUAvytiSjidgpplUfT_N39l/view?usp=sharing) above.
+2. In the repository, navigate to the `SystemCode/data/` folder (create it if it does not exist).
+3. Extract the archive so the path is exactly: `fashion-recommender/SystemCode/data/neo4j_data/`
 
 ### [ 2 ] Start the Services
 
