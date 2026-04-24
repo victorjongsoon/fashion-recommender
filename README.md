@@ -35,7 +35,7 @@ A **chatbot** front-end powered by an LLM interprets free-form user input (e.g. 
 
 ## SECTION 4 : VIDEO OF SYSTEM MODELLING & USE CASE DEMO
 
-- **Promotion Video:** `[Promotion video link to be added]` <!-- TODO: replace with final promotion video link -->
+- **Promotion Video:** https://youtu.be/hy_2oP7v04A
 - **Technical Video:** https://youtu.be/o97mxxSiHvU
 
 Note: It is not mandatory for every project member to appear in the video presentation; presentation by one project member is acceptable.
