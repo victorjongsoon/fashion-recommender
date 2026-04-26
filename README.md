@@ -25,11 +25,11 @@ A **chatbot** front-end powered by an LLM interprets free-form user input (e.g. 
 
 ## SECTION 3 : CREDITS / PROJECT CONTRIBUTION
 
-| Official Full Name | Student ID | Work Items (Who Did What) | Email |
-| :----------------- | :--------: | :------------------------ | :---- |
-| How Yong Chen           | A0340116W | <!-- TODO --> | <!-- TODO --> |
-| Victor Jong Soon Peng   | A0339815U | <!-- TODO --> | victorjongsoonpeng@u.nus.edu |
-| Joshua Yuan Zilin       | A0283899Y | <!-- TODO --> | <!-- TODO --> |
+| Official Full Name | Student ID |
+| :----------------- | :--------: |
+| How Yong Chen           | A0340116W |
+| Victor Jong Soon Peng   | A0339815U |
+| Joshua Yuan Zilin       | A0283899Y |
 
 ---
 
