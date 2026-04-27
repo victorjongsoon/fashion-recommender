@@ -1,0 +1,8 @@
+Group Name: Group 8 FashionAI - Stock Optimizer
+
+Members:
+How Yong Chen, A0340116W
+Victor Jong Soon Peng, A0339815U
+Joshua Yuan Zilin, A0283899Y
+
+GitHub Repository: https://github.com/victorjongsoon/fashion-recommender
