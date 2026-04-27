@@ -53,13 +53,38 @@ Note: It is not mandatory for every project member to appear in the video presen
 - Node.js 18+ (for the frontend)
 - A pre-built Neo4j database dump (`neo4j_data.zip`) — [download from Google Drive](https://drive.google.com/file/d/1zWZ-JxVkoXUAvytiSjidgpplUfT_N39l/view?usp=sharing) (the `data/` directory is git-ignored due to its size, so this must be downloaded separately)
 
-### [ 1 ] Import the Pre-Built Knowledge Graph
+### [ 1 ] Configure API Keys
+
+Before starting the services, open `SystemCode/docker-compose.yml` and replace the following placeholder values with your own keys:
+
+| Service | Environment Variable | Where to obtain |
+| :------ | :------------------- | :-------------- |
+| `vton-service` | `HF_TOKEN` | [Hugging Face](https://huggingface.co/settings/tokens) — requires access to the IDM-VTON model |
+| `agent-service` | `OPENAI_API_KEY` | [OpenAI Platform](https://platform.openai.com/api-keys) |
+
+Example (lines to edit in `docker-compose.yml`):
+
+```yaml
+vton-service:
+  environment:
+    HF_TOKEN: <your-huggingface-token>
+
+agent-service:
+  environment:
+    - OPENAI_API_KEY=<your-openai-api-key>
+```
+
+> **Never commit real API keys to the repository.** Consider using a `.env` file (already git-ignored) and referencing variables with `${VAR_NAME}` in `docker-compose.yml`.
+
+---
+
+### [ 2 ] Import the Pre-Built Knowledge Graph (required)
 
 1. Download `neo4j_data.zip` from the [Google Drive link](https://drive.google.com/file/d/1zWZ-JxVkoXUAvytiSjidgpplUfT_N39l/view?usp=sharing) above.
 2. In the repository, navigate to the `SystemCode/data/` folder (create it if it does not exist).
 3. Extract the archive so the path is exactly: `fashion-recommender/SystemCode/data/neo4j_data/`
 
-### [ 2 ] Start the Services
+### [ 3 ] Start the Services
 
 From the repository root:
 
@@ -71,13 +96,13 @@ Verify Neo4j is running at `http://localhost:7474`
 - Username: `neo4j`
 - Password: `password123`
 
-### [ 3 ] Install Python Dependencies
+### [ 4 ] Install Python Dependencies
 
 ```bash
 pip install -r SystemCode/requirements.txt
 ```
 
-### [ 4 ] Launch the Frontend
+### [ 5 ] Launch the Frontend
 
 <!-- TODO: confirm exact frontend start command -->
 ```bash
@@ -86,7 +111,7 @@ npm install
 npm run dev
 ```
 
-### [ 5 ] Open the Application
+### [ 6 ] Open the Application
 
 Navigate to `http://localhost:3000` (or the port reported by the frontend) to start chatting with FashionAI and generating outfit recommendations.
 
