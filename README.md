@@ -8,7 +8,7 @@
 
 ## SECTION 2 : EXECUTIVE SUMMARY / PAPER ABSTRACT
 
-Fashion retailers continuously accumulate **dead stock** — inventory that remains unsold for long periods due to over-ordering, seasonality shifts, or poor product discoverability. Globally, unsold apparel represents an estimated **USD 120 billion** in tied-up capital and contributes significantly to environmental waste. Compounding this, the industry faces e-commerce **return rates of 30–40%**, largely caused by the "imagination gap" — consumers' uncertainty about fit, appearance, and contextual appropriateness of clothing purchased online.
+Fashion retailers continuously accumulate **dead stock**, meaning inventory that remains unsold for long periods due to over-ordering, seasonality shifts, or poor product discoverability. Globally, unsold apparel represents an estimated **USD 120 billion** in tied-up capital and contributes significantly to environmental waste. Compounding this, the industry faces e-commerce **return rates of 30–40%**, largely caused by the "imagination gap", which describes consumers' uncertainty about fit, appearance, and contextual appropriateness of clothing purchased online.
 
 Existing solutions address only half of this problem. Pure-play virtual try-on (VTON) tools such as Perfect Corp and GlamAR act as passive visualisers without contextual decision intelligence, while traditional recommendation engines driven by collaborative filtering suffer from severe popularity bias, actively suppressing slow-moving stock and ignoring external context such as weather and occasion.
 
@@ -51,7 +51,7 @@ Note: It is not mandatory for every project member to appear in the video presen
 - Docker & Docker Compose
 - Python 3.10+
 - Node.js 18+ (for the frontend)
-- A pre-built Neo4j database dump (`neo4j_data.zip`) — [download from Google Drive](https://drive.google.com/file/d/1zWZ-JxVkoXUAvytiSjidgpplUfT_N39l/view?usp=sharing) (the `data/` directory is git-ignored due to its size, so this must be downloaded separately)
+- A pre-built Neo4j database dump (`neo4j_data.zip`), available at [Google Drive](https://drive.google.com/file/d/1zWZ-JxVkoXUAvytiSjidgpplUfT_N39l/view?usp=sharing) (the `data/` directory is git-ignored due to its size, so this must be downloaded separately)
 
 ### [ 1 ] Configure API Keys
 
@@ -59,7 +59,7 @@ Before starting the services, open `SystemCode/docker-compose.yml` and replace t
 
 | Service | Environment Variable | Where to obtain |
 | :------ | :------------------- | :-------------- |
-| `vton-service` | `HF_TOKEN` | [Hugging Face](https://huggingface.co/settings/tokens) — requires access to the IDM-VTON model |
+| `vton-service` | `HF_TOKEN` | [Hugging Face](https://huggingface.co/settings/tokens) (requires access to the IDM-VTON model) |
 | `agent-service` | `OPENAI_API_KEY` | [OpenAI Platform](https://platform.openai.com/api-keys) |
 
 Example (lines to edit in `docker-compose.yml`):
